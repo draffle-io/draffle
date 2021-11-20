@@ -1,13 +1,18 @@
-pub mod oracle;
 pub mod randomness_tools;
+pub mod recent_blockhashes;
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar;
 use anchor_spl::token::Token;
 use anchor_spl::token::{self, Mint, TokenAccount};
 
 pub const ENTRANTS_SIZE: u32 = 5000;
 pub const TIME_BUFFER: i64 = 20;
 
+#[cfg(not(feature = "production"))]
 declare_id!("DJgm9u3C2eiWVeokxwzJ92GbS5j2qiqsZ16YMoe8ShXf");
+
+#[cfg(feature = "production")]
+declare_id!("dRafA7ymQiLKjR5dmmdZC9RPX4EQUjqYFB3mWokRuDs");
 
 #[program]
 pub mod draffle {
@@ -22,6 +27,8 @@ pub mod draffle {
         let raffle = &mut ctx.accounts.raffle;
 
         raffle.creator = *ctx.accounts.creator.key;
+        raffle.total_prizes = 0;
+        raffle.claimed_prizes = 0;
         raffle.randomness = None;
         raffle.end_timestamp = end_timestamp;
         raffle.ticket_price = ticket_price;
@@ -36,13 +43,16 @@ pub mod draffle {
         Ok(())
     }
 
-    #[allow(unused_variables)]
     pub fn add_prize(ctx: Context<AddPrize>, prize_index: u32, amount: u64) -> ProgramResult {
         let clock = Clock::get()?;
-        let raffle = &ctx.accounts.raffle;
+        let raffle = &mut ctx.accounts.raffle;
 
         if clock.unix_timestamp > raffle.end_timestamp {
             return Err(RaffleError::RaffleEnded.into());
+        }
+
+        if prize_index != raffle.total_prizes {
+            return Err(RaffleError::InvalidPrizeIndex.into());
         }
 
         if amount == 0 {
@@ -60,6 +70,11 @@ pub mod draffle {
             ),
             amount,
         )?;
+
+        raffle.total_prizes = raffle
+            .total_prizes
+            .checked_add(1)
+            .ok_or(RaffleError::InvalidCalculation)?;
 
         Ok(())
     }
@@ -101,18 +116,16 @@ pub mod draffle {
         let clock = Clock::get()?;
         let raffle = &mut ctx.accounts.raffle;
 
-        let end_timestamp_with_buffer = raffle.end_timestamp
+        let end_timestamp_with_buffer = raffle
+            .end_timestamp
             .checked_add(TIME_BUFFER)
             .ok_or(RaffleError::InvalidCalculation)?;
         if clock.unix_timestamp < end_timestamp_with_buffer {
             return Err(RaffleError::RaffleStillRunning.into());
         }
 
-        let randomness = oracle::oracle_feeds_to_randomness(&vec![
-            &ctx.accounts.price_feeds.pyth_sol_price,
-            &ctx.accounts.price_feeds.pyth_btc_price,
-            &ctx.accounts.price_feeds.pyth_srm_price,
-        ])?;
+        let randomness =
+            recent_blockhashes::last_blockhash_accessor(&ctx.accounts.recent_blockhashes)?;
 
         match raffle.randomness {
             Some(_) => return Err(RaffleError::WinnersAlreadyDrawn.into()),
@@ -127,7 +140,8 @@ pub mod draffle {
         prize_index: u32,
         ticket_index: u32,
     ) -> ProgramResult {
-        let raffle = &ctx.accounts.raffle;
+        let raffle_account_info = ctx.accounts.raffle.to_account_info();
+        let raffle = &mut ctx.accounts.raffle;
 
         let randomness = match raffle.randomness {
             Some(randomness) => randomness,
@@ -150,8 +164,13 @@ pub mod draffle {
             return Err(RaffleError::TicketHasNotWon.into());
         }
 
-        if ctx.accounts.winner.key() != entrants.entrants[ticket_index as usize] {
-            return Err(RaffleError::TicketNotSigned.into());
+        if ctx.accounts.winner_token_account.owner.key() != entrants.entrants[ticket_index as usize]
+        {
+            return Err(RaffleError::TokenAccountNotOwnedByWinner.into());
+        }
+
+        if ctx.accounts.prize.amount == 0 {
+            return Err(RaffleError::NoPrize.into());
         }
 
         let (_, nonce) = Pubkey::find_program_address(
@@ -167,12 +186,17 @@ pub mod draffle {
                 token::Transfer {
                     from: ctx.accounts.prize.to_account_info(),
                     to: ctx.accounts.winner_token_account.to_account_info(),
-                    authority: ctx.accounts.raffle.to_account_info(),
+                    authority: raffle_account_info,
                 },
                 signer_seeds,
             ),
             ctx.accounts.prize.amount,
         )?;
+
+        raffle.claimed_prizes = raffle
+            .claimed_prizes
+            .checked_add(1)
+            .ok_or(RaffleError::InvalidCalculation)?;
 
         Ok(())
     }
@@ -203,6 +227,16 @@ pub mod draffle {
             ),
             ctx.accounts.proceeds.amount,
         )?;
+
+        Ok(())
+    }
+
+    pub fn close_entrants(ctx: Context<CloseEntrants>) -> ProgramResult {
+        let raffle = &ctx.accounts.raffle;
+        let entrants = ctx.accounts.entrants.load()?;
+        if (raffle.claimed_prizes != raffle.total_prizes) && entrants.total != 0 {
+            return Err(RaffleError::UnclaimedPrizes.into());
+        }
 
         Ok(())
     }
@@ -240,7 +274,7 @@ pub struct CreateRaffle<'info> {
 #[derive(Accounts)]
 #[instruction(prize_index: u32)]
 pub struct AddPrize<'info> {
-    #[account(has_one = creator)]
+    #[account(mut, has_one = creator)]
     pub raffle: Account<'info, Raffle>,
     #[account(mut)]
     pub creator: Signer<'info>,
@@ -281,26 +315,17 @@ pub struct BuyTickets<'info> {
 }
 
 #[derive(Accounts)]
-pub struct PriceFeeds<'info> {
-    #[account(address = oracle::pyth_prices::sol_price::ID)]
-    pub pyth_sol_price: AccountInfo<'info>,
-    #[account(address = oracle::pyth_prices::btc_price::ID)]
-    pub pyth_btc_price: AccountInfo<'info>,
-    #[account(address = oracle::pyth_prices::srm_price::ID)]
-    pub pyth_srm_price: AccountInfo<'info>,
-}
-
-#[derive(Accounts)]
 pub struct RevealWinners<'info> {
     #[account(mut)]
     pub raffle: Account<'info, Raffle>,
-    pub price_feeds: PriceFeeds<'info>,
+    #[account(address = sysvar::recent_blockhashes::ID)]
+    pub recent_blockhashes: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]
 #[instruction(prize_index: u32)]
 pub struct ClaimPrize<'info> {
-    #[account(has_one = entrants)]
+    #[account(mut, has_one = entrants)]
     pub raffle: Account<'info, Raffle>,
     pub entrants: Loader<'info, Entrants>,
     #[account(
@@ -309,10 +334,8 @@ pub struct ClaimPrize<'info> {
         bump,
     )]
     pub prize: Account<'info, TokenAccount>,
-    #[account(mut, constraint = winner_token_account.owner == winner.key())]
+    #[account(mut)]
     pub winner_token_account: Account<'info, TokenAccount>,
-    #[account(signer)]
-    pub winner: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -335,10 +358,21 @@ pub struct CollectProceeds<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct CloseEntrants<'info> {
+    #[account(has_one = creator, has_one = entrants)]
+    pub raffle: Account<'info, Raffle>,
+    #[account(mut, close = creator)]
+    pub entrants: Loader<'info, Entrants>,
+    pub creator: Signer<'info>,
+}
+
 #[account]
 #[derive(Default, Debug)]
 pub struct Raffle {
     pub creator: Pubkey,
+    pub total_prizes: u32,
+    pub claimed_prizes: u32,
     pub randomness: Option<[u8; 32]>,
     pub end_timestamp: i64,
     pub ticket_price: u64,
@@ -369,6 +403,8 @@ pub enum RaffleError {
     MaxEntrantsTooLarge,
     #[msg("Raffle has ended")]
     RaffleEnded,
+    #[msg("Invalid prize index")]
+    InvalidPrizeIndex,
     #[msg("No prize")]
     NoPrize,
     #[msg("Invalid calculation")]
@@ -383,8 +419,12 @@ pub enum RaffleError {
     WinnerNotDrawn,
     #[msg("Invalid revealed data")]
     InvalidRevealedData,
-    #[msg("Ticket not signed")]
-    TicketNotSigned,
+    #[msg("Ticket account not owned by winner")]
+    TokenAccountNotOwnedByWinner,
     #[msg("Ticket has not won")]
     TicketHasNotWon,
+    #[msg("Unclaimed prizes")]
+    UnclaimedPrizes,
+    #[msg("Invalid recent blockhashes")]
+    InvalidRecentBlockhashes,
 }

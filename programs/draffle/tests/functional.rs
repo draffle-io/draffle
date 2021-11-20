@@ -1,9 +1,9 @@
+use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::{prelude::*, InstructionData};
 use assert_matches::assert_matches;
 use bincode::deserialize;
 use bytemuck;
 use draffle::{Entrants, Raffle};
-use solana_program::program_pack::Pack;
 use solana_program_test::{processor, tokio, ProgramTest, ProgramTestContext};
 use solana_sdk::{
     instruction::{Instruction, InstructionError},
@@ -221,11 +221,7 @@ async fn test_raffle() {
                 program_id,
                 accounts: draffle::accounts::RevealWinners {
                     raffle,
-                    price_feeds: draffle::accounts::PriceFeeds {
-                        pyth_sol_price: draffle::oracle::pyth_prices::sol_price::ID,
-                        pyth_btc_price: draffle::oracle::pyth_prices::btc_price::ID,
-                        pyth_srm_price: draffle::oracle::pyth_prices::srm_price::ID,
-                    },
+                    recent_blockhashes: sysvar::recent_blockhashes::ID,
                 }
                 .to_account_metas(None),
                 data: draffle::instruction::RevealWinners.data(),
@@ -257,11 +253,7 @@ async fn test_raffle() {
                 program_id,
                 accounts: draffle::accounts::RevealWinners {
                     raffle,
-                    price_feeds: draffle::accounts::PriceFeeds {
-                        pyth_sol_price: draffle::oracle::pyth_prices::sol_price::ID,
-                        pyth_btc_price: draffle::oracle::pyth_prices::btc_price::ID,
-                        pyth_srm_price: draffle::oracle::pyth_prices::srm_price::ID,
-                    },
+                    recent_blockhashes: sysvar::recent_blockhashes::ID,
                 }
                 .to_account_metas(None),
                 data: draffle::instruction::RevealWinners.data(),
@@ -301,12 +293,7 @@ async fn test_raffle() {
         &first_prize_winner,
         &first_prize_mint_keypair.pubkey(),
     );
-    let user_first_prize_winner = users
-        .iter()
-        .find(|user| user.keypair.pubkey() == first_prize_winner)
-        .unwrap();
 
-    println!("{}", user_first_prize_winner.keypair.pubkey());
     println!("first_prize_winner_ticket: {}", first_prize_winner_ticket);
     println!("Entrants data winner: {}", first_prize_winner);
 
@@ -325,7 +312,6 @@ async fn test_raffle() {
                         entrants: entrants_keypair.pubkey(),
                         prize: first_prize,
                         winner_token_account: winner_prize_ata,
-                        winner: first_prize_winner,
                         token_program: spl_token::ID,
                     }
                     .to_account_metas(None),
@@ -336,7 +322,28 @@ async fn test_raffle() {
                     .data(),
                 },
             ],
-            &[&user_first_prize_winner.keypair],
+            &[],
+        )
+        .await;
+
+    // Close entrants before all prizes are claimed
+    draffle_program_test
+        .process_tx_and_assert_err(
+            &[Instruction {
+                program_id,
+                accounts: draffle::accounts::CloseEntrants {
+                    raffle,
+                    entrants: entrants_keypair.pubkey(),
+                    creator: payer_pk,
+                }
+                .to_account_metas(None),
+                data: draffle::instruction::CloseEntrants.data(),
+            }],
+            &[],
+            TransactionError::InstructionError(
+                0,
+                InstructionError::Custom(draffle::RaffleError::UnclaimedPrizes as u32 + 300),
+            ),
         )
         .await;
 
@@ -348,10 +355,6 @@ async fn test_raffle() {
         &second_prize_winner,
         &second_prize_mint_keypair.pubkey(),
     );
-    let user_second_prize_winner = users
-        .iter()
-        .find(|user| user.keypair.pubkey() == second_prize_winner)
-        .unwrap();
 
     draffle_program_test
         .process_tx_and_assert_ok(
@@ -368,7 +371,6 @@ async fn test_raffle() {
                         entrants: entrants_keypair.pubkey(),
                         prize: second_prize,
                         winner_token_account: second_prize_winner_ata,
-                        winner: second_prize_winner,
                         token_program: spl_token::ID,
                     }
                     .to_account_metas(None),
@@ -379,7 +381,7 @@ async fn test_raffle() {
                     .data(),
                 },
             ],
-            &[&user_second_prize_winner.keypair],
+            &[],
         )
         .await;
 
@@ -398,6 +400,27 @@ async fn test_raffle() {
                 .to_account_metas(None),
                 data: draffle::instruction::CollectProceeds.data(),
             }],
+            &[],
+        )
+        .await;
+
+    // Close entrants
+    draffle_program_test
+        .process_tx_and_assert_ok(
+            &[
+                Instruction {
+                    program_id,
+                    accounts: draffle::accounts::CloseEntrants {
+                        raffle,
+                        entrants: entrants_keypair.pubkey(),
+                        creator: payer_pk,
+                    }
+                    .to_account_metas(None),
+                    data: draffle::instruction::CloseEntrants.data(),
+                },
+                // Self transfer to prevent identical signature as before
+                system_instruction::transfer(&payer_pk, &payer_pk, 0),
+            ],
             &[],
         )
         .await;
@@ -529,27 +552,7 @@ pub struct DraffleProgramTest {
 impl DraffleProgramTest {
     pub async fn start_new() -> Self {
         let program_id = Pubkey::from_str("DJgm9u3C2eiWVeokxwzJ92GbS5j2qiqsZ16YMoe8ShXf").unwrap();
-        let mut pt = ProgramTest::new("draffle", program_id.clone(), processor!(draffle::entry));
-
-        let pyth_program_id = Pubkey::new_unique();
-        pt.add_account_with_file_data(
-            draffle::oracle::pyth_prices::sol_price::ID,
-            123456789,
-            pyth_program_id,
-            "pyth-sol-price.bin",
-        );
-        pt.add_account_with_file_data(
-            draffle::oracle::pyth_prices::btc_price::ID,
-            123456789,
-            pyth_program_id,
-            "pyth-btc-price.bin",
-        );
-        pt.add_account_with_file_data(
-            draffle::oracle::pyth_prices::srm_price::ID,
-            123456789,
-            pyth_program_id,
-            "pyth-srm-price.bin",
-        );
+        let pt = ProgramTest::new("draffle", program_id.clone(), processor!(draffle::entry));
 
         let mut context = pt.start_with_context().await;
         let rent = context.banks_client.get_rent().await.unwrap();

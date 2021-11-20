@@ -1,4 +1,4 @@
-use solana_program::keccak;
+use anchor_lang::solana_program::keccak;
 use std::convert::TryInto;
 
 //https://docs.chain.link/docs/chainlink-vrf-best-practices/#getting-multiple-random-number
