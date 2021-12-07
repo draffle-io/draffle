@@ -45,6 +45,7 @@ const ProgramApisProvider: FC = ({ children }) => {
   const anchorWallet = useAnchorWallet();
 
   const { draffleClient } = useMemo(() => {
+    //@ts-ignore
     const draffleClient = new Program(
       DraffleJson as DraffleIdl,
       DRAFFLE_PROGRAM_ID,
@@ -56,6 +57,7 @@ const ProgramApisProvider: FC = ({ children }) => {
   }, [connection, anchorWallet]);
 
   const { dispenserClient } = useMemo(() => {
+        //@ts-ignore
     const dispenserClient = new Program(
       DispenserJson as DispenserIdl,
       DISPENSER_PROGRAM_ID,

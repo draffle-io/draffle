@@ -32,7 +32,7 @@ const RaffleDetails: FC = () => {
 
   if (!currentRaffle) return null;
 
-  return isRaffleEnded ? (
+  return !isRaffleEnded ? (
     <RaffleEndedScreen
       raffle={currentRaffle}
       updateRaffle={updateCurrentRaffle}
