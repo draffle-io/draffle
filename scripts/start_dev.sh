@@ -15,14 +15,15 @@ DISPENSER_PROGRAM_ID="$(solana address -k ${SCRIPT_PATH}/sample_accounts/dispens
 
 solana-test-validator \
 --bpf-program ${DRAFFLE_PROGRAM_ID} ${SCRIPT_PATH}/../target/deploy/draffle.so \
---bpf-program ${COMMUNITY_STAKING_PROGRAM_ID} ${SCRIPT_PATH}/../target/deploy/community_staking.so \
---bpf-program ${DISPENSER_PROGRAM_ID} ${SCRIPT_PATH}/../target/deploy/dispenser.so \
 --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s scripts/metaplex_token_metadata.so \
 --clone H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG \
 --clone GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU \
 --clone 3NBReDRTLKMQEKiLD5tGcx4kXbTf88b7f2xLS9UuGjym \
 --url mainnet-beta \
 --quiet --reset &
+
+#--bpf-program ${COMMUNITY_STAKING_PROGRAM_ID} ${SCRIPT_PATH}/../target/deploy/community_staking.so \
+#--bpf-program ${DISPENSER_PROGRAM_ID} ${SCRIPT_PATH}/../target/deploy/dispenser.so \
 
 echo "Setting cluster to localnet..."
 solana config set --url http://127.0.0.1:8899

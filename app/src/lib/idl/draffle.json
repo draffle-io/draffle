@@ -1,5 +1,5 @@
 {
-  "version": "0.0.0",
+  "version": "0.1.0",
   "name": "draffle",
   "instructions": [
     {
@@ -338,72 +338,72 @@
   ],
   "errors": [
     {
-      "code": 300,
+      "code": 6000,
       "name": "MaxEntrantsTooLarge",
       "msg": "Max entrants is too large"
     },
     {
-      "code": 301,
+      "code": 6001,
       "name": "RaffleEnded",
       "msg": "Raffle has ended"
     },
     {
-      "code": 302,
+      "code": 6002,
       "name": "InvalidPrizeIndex",
       "msg": "Invalid prize index"
     },
     {
-      "code": 303,
+      "code": 6003,
       "name": "NoPrize",
       "msg": "No prize"
     },
     {
-      "code": 304,
+      "code": 6004,
       "name": "InvalidCalculation",
       "msg": "Invalid calculation"
     },
     {
-      "code": 305,
+      "code": 6005,
       "name": "NotEnoughTicketsLeft",
       "msg": "Not enough tickets left"
     },
     {
-      "code": 306,
+      "code": 6006,
       "name": "RaffleStillRunning",
       "msg": "Raffle is still running"
     },
     {
-      "code": 307,
+      "code": 6007,
       "name": "WinnersAlreadyDrawn",
       "msg": "Winner already drawn"
     },
     {
-      "code": 308,
+      "code": 6008,
       "name": "WinnerNotDrawn",
       "msg": "Winner not drawn"
     },
     {
-      "code": 309,
+      "code": 6009,
       "name": "InvalidRevealedData",
       "msg": "Invalid revealed data"
     },
     {
-      "code": 310,
+      "code": 6010,
       "name": "TokenAccountNotOwnedByWinner",
       "msg": "Ticket account not owned by winner"
     },
     {
-      "code": 311,
+      "code": 6011,
       "name": "TicketHasNotWon",
       "msg": "Ticket has not won"
     },
     {
-      "code": 312,
+      "code": 6012,
       "name": "UnclaimedPrizes",
       "msg": "Unclaimed prizes"
     },
     {
-      "code": 313,
+      "code": 6013,
       "name": "InvalidRecentBlockhashes",
       "msg": "Invalid recent blockhashes"
     }

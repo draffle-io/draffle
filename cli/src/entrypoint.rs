@@ -7,6 +7,8 @@ use anchor_client::solana_sdk::{
     signature::{read_keypair_file, Keypair},
     system_instruction,
     transaction::Transaction,
+    system_program,
+    sysvar,
 };
 use anchor_client::{Client, Cluster};
 use anchor_lang::prelude::*;
@@ -14,13 +16,12 @@ use anchor_lang::InstructionData;
 use anyhow::Result;
 use bincode::deserialize;
 use chrono::NaiveDateTime;
-use clap::Clap;
-use solana_sdk::{system_program, sysvar};
+use clap::Parser;
 use spl_associated_token_account;
 use std::mem::size_of;
 use std::str::FromStr;
 
-#[derive(Default, Debug, Clap)]
+#[derive(Default, Debug, Parser)]
 pub struct ConfigOverride {
     /// Cluster override.
     #[clap(global = true, long = "provider.cluster")]
@@ -36,7 +37,7 @@ pub struct ConfigOverride {
     pub program_id: String,
 }
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Parser)]
 pub enum Command {
     ShowRaffle {
         raffle: Pubkey,
@@ -72,7 +73,7 @@ pub enum Command {
     },
 }
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Parser)]
 pub struct Opts {
     #[clap(flatten)]
     pub cfg_override: ConfigOverride,

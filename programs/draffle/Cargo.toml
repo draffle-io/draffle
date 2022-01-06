@@ -10,11 +10,11 @@ name = "draffle"
 doctest = false
 
 [features]
-default = ["production"]
 no-entrypoint = []
 no-idl = []
 cpi = ["no-entrypoint"]
 production = []
+default = []
 
 [dependencies]
 anchor-lang = "0.17.0"
