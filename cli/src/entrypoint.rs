@@ -5,10 +5,8 @@ use anchor_client::solana_sdk::{
     commitment_config::CommitmentConfig,
     instruction::Instruction,
     signature::{read_keypair_file, Keypair},
-    system_instruction,
+    system_instruction, system_program, sysvar,
     transaction::Transaction,
-    system_program,
-    sysvar,
 };
 use anchor_client::{Client, Cluster};
 use anchor_lang::prelude::*;
@@ -19,6 +17,7 @@ use chrono::NaiveDateTime;
 use clap::Parser;
 use spl_associated_token_account;
 use std::mem::size_of;
+use std::rc::Rc;
 use std::str::FromStr;
 
 #[derive(Default, Debug, Parser)]
@@ -97,7 +96,7 @@ pub fn entry(opts: Opts) -> Result<()> {
             "ws://127.0.0.1:8900".to_string(),
         ),
     };
-    let client = Client::new_with_options(url, payer, CommitmentConfig::processed());
+    let client = Client::new_with_options(url, Rc::new(payer), CommitmentConfig::processed());
     let program_id: Pubkey = FromStr::from_str(&opts.cfg_override.program_id)?;
     let program_client = client.program(program_id);
 

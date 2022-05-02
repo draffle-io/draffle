@@ -10,6 +10,8 @@ dRaffle is a decentralized raffle protocol on Solana, which creates the necessar
 
 [Discord](https://discord.com/invite/BwPsaDzbNR)
 
+The dRaffle program has been deployed and is a verifiable build https://anchor.projectserum.com/program/dRafA7ymQiLKjR5dmmdZC9RPX4EQUjqYFB3mWokRuDs
+
 ## Components
 
 - The dRaffle program, to create raffles

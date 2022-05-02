@@ -1,16 +1,15 @@
 use anchor_lang::{prelude::*, InstructionData};
-use anchor_spl::token::TokenAccount;
-use assert_matches::assert_matches;
-use dispenser::{DispenserError, Registry};
-use solana_program::program_pack::Pack;
-use solana_program_test::{processor, tokio, ProgramTest, ProgramTestContext};
 use solana_sdk::{
     instruction::{Instruction, InstructionError},
     pubkey::Pubkey,
     signature::{Keypair, Signer},
     system_instruction, system_program, sysvar,
-    transaction::{Transaction, TransactionError},
+    transaction::{Transaction, TransactionError}, program_pack::Pack,
 };
+use anchor_spl::token::TokenAccount;
+use assert_matches::assert_matches;
+use dispenser::{DispenserError, Registry};
+use solana_program_test::{processor, tokio, ProgramTest, ProgramTestContext};
 use std::str::FromStr;
 
 #[tokio::test]
@@ -175,7 +174,7 @@ async fn test_dispenser() {
             &[],
             TransactionError::InstructionError(
                 0,
-                InstructionError::Custom(DispenserError::InsufficientVaultFunds as u32 + 300),
+                InstructionError::Custom(DispenserError::InsufficientVaultFunds as u32 + 6000),
             ),
         )
         .await;
@@ -212,7 +211,7 @@ async fn test_dispenser() {
             &[],
             TransactionError::InstructionError(
                 0,
-                InstructionError::Custom(DispenserError::InsufficientUserFunds as u32 + 300),
+                InstructionError::Custom(DispenserError::InsufficientUserFunds as u32 + 6000),
             ),
         )
         .await;

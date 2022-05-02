@@ -9,7 +9,7 @@ pub const ENTRANTS_SIZE: u32 = 5000;
 pub const TIME_BUFFER: i64 = 20;
 
 #[cfg(not(feature = "production"))]
-declare_id!("DJgm9u3C2eiWVeokxwzJ92GbS5j2qiqsZ16YMoe8ShXf");
+declare_id!("dRaFFLe111111111111111111111111111111111112");
 
 #[cfg(feature = "production")]
 declare_id!("dRafA7ymQiLKjR5dmmdZC9RPX4EQUjqYFB3mWokRuDs");
@@ -23,7 +23,7 @@ pub mod draffle {
         end_timestamp: i64,
         ticket_price: u64,
         max_entrants: u32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let raffle = &mut ctx.accounts.raffle;
 
         raffle.creator = *ctx.accounts.creator.key;
@@ -43,7 +43,7 @@ pub mod draffle {
         Ok(())
     }
 
-    pub fn add_prize(ctx: Context<AddPrize>, prize_index: u32, amount: u64) -> ProgramResult {
+    pub fn add_prize(ctx: Context<AddPrize>, prize_index: u32, amount: u64) -> Result<()> {
         let clock = Clock::get()?;
         let raffle = &mut ctx.accounts.raffle;
 
@@ -79,7 +79,7 @@ pub mod draffle {
         Ok(())
     }
 
-    pub fn buy_tickets(ctx: Context<BuyTickets>, amount: u32) -> ProgramResult {
+    pub fn buy_tickets(ctx: Context<BuyTickets>, amount: u32) -> Result<()> {
         let clock = Clock::get()?;
         let raffle = &mut ctx.accounts.raffle;
         let mut entrants = ctx.accounts.entrants.load_mut()?;
@@ -112,7 +112,7 @@ pub mod draffle {
         Ok(())
     }
 
-    pub fn reveal_winners(ctx: Context<RevealWinners>) -> ProgramResult {
+    pub fn reveal_winners(ctx: Context<RevealWinners>) -> Result<()> {
         let clock = Clock::get()?;
         let raffle = &mut ctx.accounts.raffle;
 
@@ -139,7 +139,7 @@ pub mod draffle {
         ctx: Context<ClaimPrize>,
         prize_index: u32,
         ticket_index: u32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let raffle_account_info = ctx.accounts.raffle.to_account_info();
         let raffle = &mut ctx.accounts.raffle;
 
@@ -201,7 +201,7 @@ pub mod draffle {
         Ok(())
     }
 
-    pub fn collect_proceeds(ctx: Context<CollectProceeds>) -> ProgramResult {
+    pub fn collect_proceeds(ctx: Context<CollectProceeds>) -> Result<()> {
         let raffle = &ctx.accounts.raffle;
 
         if !raffle.randomness.is_some() {
@@ -231,7 +231,7 @@ pub mod draffle {
         Ok(())
     }
 
-    pub fn close_entrants(ctx: Context<CloseEntrants>) -> ProgramResult {
+    pub fn close_entrants(ctx: Context<CloseEntrants>) -> Result<()> {
         let raffle = &ctx.accounts.raffle;
         let entrants = ctx.accounts.entrants.load()?;
         if (raffle.claimed_prizes != raffle.total_prizes) && entrants.total != 0 {
@@ -253,7 +253,7 @@ pub struct CreateRaffle<'info> {
     )]
     pub raffle: Account<'info, Raffle>,
     #[account(zero)]
-    pub entrants: Loader<'info, Entrants>,
+    pub entrants: AccountLoader<'info, Entrants>,
     #[account(mut)]
     pub creator: Signer<'info>,
     #[account(
@@ -300,7 +300,7 @@ pub struct BuyTickets<'info> {
     #[account(has_one = entrants)]
     pub raffle: Account<'info, Raffle>,
     #[account(mut)]
-    pub entrants: Loader<'info, Entrants>,
+    pub entrants: AccountLoader<'info, Entrants>,
     #[account(
         mut,
         seeds = [raffle.key().as_ref(), b"proceeds"],
@@ -327,7 +327,7 @@ pub struct RevealWinners<'info> {
 pub struct ClaimPrize<'info> {
     #[account(mut, has_one = entrants)]
     pub raffle: Account<'info, Raffle>,
-    pub entrants: Loader<'info, Entrants>,
+    pub entrants: AccountLoader<'info, Entrants>,
     #[account(
         mut,
         seeds = [raffle.key().as_ref(), b"prize", &prize_index.to_le_bytes()],
@@ -363,7 +363,7 @@ pub struct CloseEntrants<'info> {
     #[account(has_one = creator, has_one = entrants)]
     pub raffle: Account<'info, Raffle>,
     #[account(mut, close = creator)]
-    pub entrants: Loader<'info, Entrants>,
+    pub entrants: AccountLoader<'info, Entrants>,
     pub creator: Signer<'info>,
 }
 
@@ -387,7 +387,7 @@ pub struct Entrants {
 }
 
 impl Entrants {
-    fn append(&mut self, entrant: Pubkey) -> ProgramResult {
+    fn append(&mut self, entrant: Pubkey) -> Result<()> {
         if self.total >= self.max {
             return Err(RaffleError::NotEnoughTicketsLeft.into());
         }
@@ -397,7 +397,7 @@ impl Entrants {
     }
 }
 
-#[error]
+#[error_code]
 pub enum RaffleError {
     #[msg("Max entrants is too large")]
     MaxEntrantsTooLarge,

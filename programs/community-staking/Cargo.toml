@@ -17,5 +17,5 @@ production = []
 default = []
 
 [dependencies]
-anchor-lang = "0.17.0"
-anchor-spl = "0.17.0"
+anchor-lang = "0.24.2"
+anchor-spl = "0.24.2"
