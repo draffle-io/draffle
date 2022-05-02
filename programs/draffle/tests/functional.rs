@@ -229,7 +229,7 @@ async fn test_raffle() {
             &[],
             TransactionError::InstructionError(
                 0,
-                InstructionError::Custom(draffle::RaffleError::RaffleStillRunning as u32 + 300),
+                InstructionError::Custom(draffle::RaffleError::RaffleStillRunning as u32 + 6000),
             ),
         )
         .await;
@@ -342,7 +342,7 @@ async fn test_raffle() {
             &[],
             TransactionError::InstructionError(
                 0,
-                InstructionError::Custom(draffle::RaffleError::UnclaimedPrizes as u32 + 300),
+                InstructionError::Custom(draffle::RaffleError::UnclaimedPrizes as u32 + 6000),
             ),
         )
         .await;
@@ -551,8 +551,7 @@ pub struct DraffleProgramTest {
 
 impl DraffleProgramTest {
     pub async fn start_new() -> Self {
-        let program_id = Pubkey::from_str("DJgm9u3C2eiWVeokxwzJ92GbS5j2qiqsZ16YMoe8ShXf").unwrap();
-        let pt = ProgramTest::new("draffle", program_id.clone(), processor!(draffle::entry));
+        let pt = ProgramTest::new("draffle", draffle::ID, processor!(draffle::entry));
 
         let mut context = pt.start_with_context().await;
         let rent = context.banks_client.get_rent().await.unwrap();
@@ -560,7 +559,7 @@ impl DraffleProgramTest {
         Self {
             context,
             rent,
-            program_id,
+            program_id: draffle::ID,
         }
     }
 

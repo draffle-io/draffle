@@ -1,10 +1,10 @@
 use anchor_lang::{prelude::*, InstructionData};
-use anchor_client::solana_sdk::{
+use solana_sdk::{
     instruction::{Instruction, InstructionError},
     pubkey::Pubkey,
     signature::{Keypair, Signer},
     system_instruction, system_program, sysvar,
-    transaction::{Transaction, TransactionError},
+    transaction::{Transaction, TransactionError}, program_pack::Pack,
 };
 use anchor_spl::token::TokenAccount;
 use assert_matches::assert_matches;
@@ -174,7 +174,7 @@ async fn test_dispenser() {
             &[],
             TransactionError::InstructionError(
                 0,
-                InstructionError::Custom(DispenserError::InsufficientVaultFunds as u32 + 300),
+                InstructionError::Custom(DispenserError::InsufficientVaultFunds as u32 + 6000),
             ),
         )
         .await;
@@ -211,7 +211,7 @@ async fn test_dispenser() {
             &[],
             TransactionError::InstructionError(
                 0,
-                InstructionError::Custom(DispenserError::InsufficientUserFunds as u32 + 300),
+                InstructionError::Custom(DispenserError::InsufficientUserFunds as u32 + 6000),
             ),
         )
         .await;

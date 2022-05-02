@@ -903,12 +903,12 @@ dependencies = [
 name = "dispenser"
 version = "0.1.0"
 dependencies = [
- "anchor-client",
  "anchor-lang",
  "anchor-spl",
  "assert_matches",
  "bincode",
  "solana-program-test",
+ "solana-sdk",
  "spl-associated-token-account",
  "spl-token",
 ]
@@ -946,6 +946,7 @@ dependencies = [
  "bincode",
  "bytemuck",
  "solana-program-test",
+ "solana-sdk",
  "spl-associated-token-account",
  "spl-token",
 ]
