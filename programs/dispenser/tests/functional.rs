@@ -1,16 +1,15 @@
 use anchor_lang::{prelude::*, InstructionData};
-use anchor_spl::token::TokenAccount;
-use assert_matches::assert_matches;
-use dispenser::{DispenserError, Registry};
-use solana_program::program_pack::Pack;
-use solana_program_test::{processor, tokio, ProgramTest, ProgramTestContext};
-use solana_sdk::{
+use anchor_client::solana_sdk::{
     instruction::{Instruction, InstructionError},
     pubkey::Pubkey,
     signature::{Keypair, Signer},
     system_instruction, system_program, sysvar,
     transaction::{Transaction, TransactionError},
 };
+use anchor_spl::token::TokenAccount;
+use assert_matches::assert_matches;
+use dispenser::{DispenserError, Registry};
+use solana_program_test::{processor, tokio, ProgramTest, ProgramTestContext};
 use std::str::FromStr;
 
 #[tokio::test]

@@ -13,7 +13,7 @@ pub mod dispenser {
         ctx: Context<CreateRegistry>,
         rate_token_in: u64,
         rate_token_out: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         ctx.accounts.registry.vault_token_in = ctx.accounts.vault_token_in.key();
         ctx.accounts.registry.vault_token_out = ctx.accounts.vault_token_out.key();
         ctx.accounts.registry.admin = ctx.accounts.admin.key();
@@ -29,7 +29,7 @@ pub mod dispenser {
         ctx: Context<UpdateRegistry>,
         rate_token_in: u64,
         rate_token_out: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         ctx.accounts.registry.admin = ctx.accounts.admin.key();
         ctx.accounts.registry.rate_token_in = rate_token_in;
         ctx.accounts.registry.rate_token_out = rate_token_out;
@@ -37,7 +37,7 @@ pub mod dispenser {
         Ok(())
     }
 
-    pub fn swap(ctx: Context<Swap>, amount_requested: u64) -> ProgramResult {
+    pub fn swap(ctx: Context<Swap>, amount_requested: u64) -> Result<()> {
         if ctx.accounts.vault_token_out.amount < amount_requested {
             return Err(DispenserError::InsufficientVaultFunds.into());
         }
@@ -91,7 +91,7 @@ pub mod dispenser {
         Ok(())
     }
 
-    pub fn collect_proceeds(ctx: Context<CollectProceeds>) -> ProgramResult {
+    pub fn collect_proceeds(ctx: Context<CollectProceeds>) -> Result<()> {
         let registry_key = ctx.accounts.registry.key();
 
         let (_, nonce) = Pubkey::find_program_address(
@@ -115,7 +115,7 @@ pub mod dispenser {
         Ok(())
     }
 
-    pub fn collect_reserve(ctx: Context<CollectReserve>) -> ProgramResult {
+    pub fn collect_reserve(ctx: Context<CollectReserve>) -> Result<()> {
         let registry_key = ctx.accounts.registry.key();
 
         let (_, nonce) = Pubkey::find_program_address(
@@ -147,6 +147,7 @@ pub struct CreateRegistry<'info> {
     #[account(
         init,
         payer = admin,
+        space = 8 + 32 + 32 + 32 + 8 + 8 + 32 + 32
     )]
     registry: Account<'info, Registry>,
     #[account(
@@ -251,7 +252,7 @@ pub struct Registry {
     pub mint_token_out: Pubkey,
 }
 
-#[error]
+#[error_code]
 pub enum DispenserError {
     #[msg("Insufficient user funds")]
     InsufficientUserFunds,

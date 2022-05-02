@@ -18,7 +18,7 @@ pub mod community_staking {
         ctx: Context<CreateRegistry>,
         reward_period: i64,
         reward_rate_numerator: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         ctx.accounts.registry.vault = ctx.accounts.vault.key();
         ctx.accounts.registry.admin = ctx.accounts.admin.key();
         ctx.accounts.registry.reward_period = reward_period;
@@ -31,14 +31,14 @@ pub mod community_staking {
         ctx: Context<UpdateRegistry>,
         reward_period: i64,
         reward_rate_numerator: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         ctx.accounts.registry.reward_period = reward_period;
         ctx.accounts.registry.reward_rate_numerator = reward_rate_numerator;
 
         Ok(())
     }
 
-    pub fn assign_controller(ctx: Context<AssignController>) -> ProgramResult {
+    pub fn assign_controller(ctx: Context<AssignController>) -> Result<()> {
         ctx.accounts.controller_record.enabled = true;
         ctx.accounts.controller_record.max_multiplier = 1;
         Ok(())
@@ -48,7 +48,7 @@ pub mod community_staking {
         ctx: Context<RevokeController>,
         enabled: Option<bool>,
         max_multiplier: Option<u64>,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         if let Some(enabled) = enabled {
             ctx.accounts.controller_record.enabled = enabled;
         }
@@ -58,7 +58,7 @@ pub mod community_staking {
         Ok(())
     }
 
-    pub fn control(ctx: Context<Control>, multiplier: u64) -> ProgramResult {
+    pub fn control(ctx: Context<Control>, multiplier: u64) -> Result<()> {
         if !ctx.accounts.controller_record.enabled {
             return Err(StakingError::ControllerDisabled.into());
         }
@@ -69,12 +69,12 @@ pub mod community_staking {
         Ok(())
     }
 
-    pub fn create_stake_account(ctx: Context<CreateStakeAccount>) -> ProgramResult {
+    pub fn create_stake_account(ctx: Context<CreateStakeAccount>) -> Result<()> {
         ctx.accounts.stake_account.registry = ctx.accounts.registry.key();
         Ok(())
     }
 
-    pub fn stake(ctx: Context<Stake>, amount: u64) -> ProgramResult {
+    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
         let unix_timestamp = Clock::get()?.unix_timestamp;
         let rewards = ctx
             .accounts
@@ -113,7 +113,7 @@ pub mod community_staking {
         Ok(())
     }
 
-    pub fn unstake(ctx: Context<Unstake>) -> ProgramResult {
+    pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
         let unix_timestamp = Clock::get()?.unix_timestamp;
         let rewards = ctx
             .accounts
@@ -169,6 +169,7 @@ pub struct CreateRegistry<'info> {
     #[account(
         init,
         payer = admin,
+        space = 8 + 32 + 32 + 8 + 8 + 8
     )]
     registry: Account<'info, Registry>,
     #[account(
@@ -209,6 +210,7 @@ pub struct AssignController<'info> {
         seeds = [b"controller_record", registry.key().as_ref(), controller.key.as_ref()],
         bump,
         payer = admin,
+        space = 8 + 4 + 32
     )]
     controller_record: Account<'info, ControllerRecord>,
     system_program: Program<'info, System>,
@@ -255,6 +257,7 @@ pub struct CreateStakeAccount<'info> {
         seeds = [b"stake", registry.key().as_ref(), staker.key.as_ref()],
         bump,
         payer = staker,
+        space = 8 + 32 + 8 + 8 + 8 + 8
     )]
     stake_account: Account<'info, StakeAccount>,
     system_program: Program<'info, System>,
@@ -341,7 +344,7 @@ impl StakeAccount {
     }
 }
 
-#[error]
+#[error_code]
 pub enum StakingError {
     #[msg("Amount too large")]
     AmountTooLarge,
