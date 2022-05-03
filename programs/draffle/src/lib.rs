@@ -164,13 +164,21 @@ pub mod draffle {
             winner_index
         );
         msg!("{} {}", winner_rand, winner_index);
-        if ticket_index != winner_index {
-            return Err(RaffleError::TicketHasNotWon.into());
-        }
 
-        if ctx.accounts.winner_token_account.owner.key() != entrants.entrants[ticket_index as usize]
-        {
-            return Err(RaffleError::TokenAccountNotOwnedByWinner.into());
+        // When total number of entrants is zero we bypass the winner check and verify the "winner_token_account" belongs to the raffle creator,
+        if entrants.total == 0 {
+            if ctx.accounts.winner_token_account.owner != raffle.creator {
+                return Err(RaffleError::OnlyCreatorCanClaimNoEntrantRafflePrizes.into());
+            }
+        } else {
+            if ticket_index != winner_index {
+                return Err(RaffleError::TicketHasNotWon.into());
+            }
+    
+            if ctx.accounts.winner_token_account.owner.key() != entrants.entrants[ticket_index as usize]
+            {
+                return Err(RaffleError::TokenAccountNotOwnedByWinner.into());
+            }
         }
 
         if ctx.accounts.prize.amount == 0 {
@@ -181,8 +189,6 @@ pub mod draffle {
             &[b"raffle".as_ref(), raffle.entrants.as_ref()],
             ctx.program_id,
         );
-        let seeds = &[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]];
-        let signer_seeds = &[&seeds[..]];
 
         token::transfer(
             CpiContext::new_with_signer(
@@ -192,7 +198,7 @@ pub mod draffle {
                     to: ctx.accounts.winner_token_account.to_account_info(),
                     authority: raffle_account_info,
                 },
-                signer_seeds,
+                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]]],
             ),
             ctx.accounts.prize.amount,
         )?;
@@ -431,4 +437,6 @@ pub enum RaffleError {
     UnclaimedPrizes,
     #[msg("Invalid recent blockhashes")]
     InvalidRecentBlockhashes,
+    #[msg("Only the creator can calin no entrant raffle prizes")]
+    OnlyCreatorCanClaimNoEntrantRafflePrizes,
 }
