@@ -204,6 +204,7 @@ pub struct AssignController<'info> {
     registry: Account<'info, Registry>,
     #[account(mut)]
     admin: Signer<'info>,
+    /// CHECK: Any account can be considered a controller
     controller: UncheckedAccount<'info>,
     #[account(
         init,
@@ -222,6 +223,7 @@ pub struct RevokeController<'info> {
     registry: Account<'info, Registry>,
     #[account(mut)]
     admin: Signer<'info>,
+    /// CHECK: Controller is guaranteed to match through the PDA seeds
     controller: UncheckedAccount<'info>,
     #[account(
         mut,

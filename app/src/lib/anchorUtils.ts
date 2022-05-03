@@ -1,4 +1,5 @@
-import { Provider } from '@project-serum/anchor';
+import { AnchorProvider } from '@project-serum/anchor';
+import { Wallet } from '@project-serum/anchor/dist/cjs/provider';
 import { AnchorWallet } from '@solana/wallet-adapter-react';
 import {
   ConfirmOptions,
@@ -11,28 +12,29 @@ import {
 import toast from 'react-hot-toast';
 import { sleep } from './utils';
 
-export class StubWallet {
+export class StubWallet implements Wallet {
   async signTransaction(tx: Transaction): Promise<Transaction> {
     return tx;
   }
   async signAllTransactions(txs: Transaction[]): Promise<Transaction[]> {
     return txs;
   }
-  publicKey: PublicKey = undefined as unknown as PublicKey; // Hack so that the stub is not recognised as a connected user down the track
+  // Total hack to allow missing wallet when not connected
+  publicKey = undefined as unknown as PublicKey;
 }
 
 export const customProviderFactory = (
   connection: Connection,
   anchorWallet: AnchorWallet | undefined
-): Provider => {
-  const provider = new Provider(
+): AnchorProvider => {
+  const provider = new AnchorProvider(
     connection,
     anchorWallet || new StubWallet(),
     {}
   );
 
   // No websocket sender with tx confirmation awaiting
-  provider.send = async (
+  provider.sendAndConfirm = async (
     tx: Transaction,
     signers?: Array<Signer | undefined>,
     opts?: ConfirmOptions

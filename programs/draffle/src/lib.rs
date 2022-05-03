@@ -8,6 +8,10 @@ use anchor_spl::token::{self, Mint, TokenAccount};
 pub const ENTRANTS_SIZE: u32 = 5000;
 pub const TIME_BUFFER: i64 = 20;
 
+pub const TREASURY_FEE_BPS: u64 =  10u64;
+// Replace with your treasury
+//pub const TREASURY: Pubkey = [];
+
 #[cfg(not(feature = "production"))]
 declare_id!("dRaFFLe111111111111111111111111111111111112");
 
@@ -309,8 +313,7 @@ pub struct BuyTickets<'info> {
     pub proceeds: Account<'info, TokenAccount>,
     #[account(mut)]
     pub buyer_token_account: Account<'info, TokenAccount>,
-    #[account(signer)]
-    pub buyer_transfer_authority: AccountInfo<'info>,
+    pub buyer_transfer_authority: Signer<'info>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -318,6 +321,7 @@ pub struct BuyTickets<'info> {
 pub struct RevealWinners<'info> {
     #[account(mut)]
     pub raffle: Account<'info, Raffle>,
+    /// CHECK: sysvar address check is hardcoded, we want to avoid the default deserialization
     #[account(address = sysvar::recent_blockhashes::ID)]
     pub recent_blockhashes: UncheckedAccount<'info>,
 }

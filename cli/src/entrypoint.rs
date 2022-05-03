@@ -286,7 +286,7 @@ fn reveal_winners(
     payer: &Keypair,
 ) -> Result<()> {
     let rpc_client = program_client.rpc();
-    let hash = rpc_client.get_recent_blockhash().unwrap().0;
+    let latest_hash = rpc_client.get_latest_blockhash().unwrap();
     rpc_client.send_and_confirm_transaction_with_spinner_and_config(
         &Transaction::new_signed_with_payer(
             &[Instruction {
@@ -300,7 +300,7 @@ fn reveal_winners(
             }],
             Some(&program_client.payer()),
             &[payer],
-            hash,
+            latest_hash,
         ),
         CommitmentConfig::confirmed(),
         RpcSendTransactionConfig {
@@ -322,7 +322,7 @@ fn collect_proceeds(
     let (proceeds, _) =
         Pubkey::find_program_address(&[raffle.key().as_ref(), b"proceeds".as_ref()], &program_id);
     let rpc_client = program_client.rpc();
-    let hash = rpc_client.get_recent_blockhash().unwrap().0;
+    let latest_hash = rpc_client.get_latest_blockhash().unwrap();
     rpc_client.send_and_confirm_transaction_with_spinner_and_config(
         &Transaction::new_signed_with_payer(
             &[Instruction {
@@ -339,7 +339,7 @@ fn collect_proceeds(
             }],
             Some(&program_client.payer()),
             &[payer],
-            hash,
+            latest_hash,
         ),
         CommitmentConfig::confirmed(),
         RpcSendTransactionConfig {
