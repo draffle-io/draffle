@@ -1,7 +1,7 @@
 import { METADATA_PROGRAM_ID } from './programIds';
 import { deserializeUnchecked } from 'borsh';
 import BN from 'bn.js';
-import { AccountInfo, Connection, PublicKey } from '@solana/web3.js';
+import { AccountInfo, PublicKey } from '@solana/web3.js';
 import { StringPublicKey } from './utils';
 import { extendBorsh } from './borsh';
 extendBorsh();
@@ -475,7 +475,7 @@ export async function getMetadata(tokenMint: PublicKey): Promise<PublicKey> {
 }
 
 export async function getNFTMetadata(
-  metadataAccountInfo: AccountInfo<Buffer>,
+  metadataAccountInfo: AccountInfo<Buffer>
 ): Promise<IMetadataExtension | undefined> {
   const metadata = decodeMetadata(metadataAccountInfo.data);
 

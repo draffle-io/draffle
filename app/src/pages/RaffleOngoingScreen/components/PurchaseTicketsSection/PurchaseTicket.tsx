@@ -19,9 +19,7 @@ import { u64 } from '@solana/spl-token';
 import toast from 'react-hot-toast';
 import {
   AddBoxRounded,
-  AddCircleOutline,
   IndeterminateCheckBoxRounded,
-  RemoveCircleOutline,
 } from '@material-ui/icons';
 
 import { MAX_NUMBER_OF_PARTICIPANTS } from '../../../../config/misc';
@@ -240,7 +238,12 @@ export const PurchaseTickets: FC<PurchaseTicketsProps> = ({
     )
       setTicketAmount(newMax.toNumber());
     return newMax;
-  }, [buyerTokenBalance, paymentOption]);
+  }, [
+    raffle.proceeds.ticketPrice,
+    ticketAmount,
+    buyerTokenBalance,
+    paymentOption,
+  ]);
 
   useEffect(() => {
     let newTicketAmount = ticketAmount === 0 ? 1 : ticketAmount;

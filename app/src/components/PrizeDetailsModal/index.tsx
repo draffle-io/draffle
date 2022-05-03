@@ -9,7 +9,7 @@ import {
 } from '@material-ui/core';
 
 import { useViewport } from '../../hooks/useViewport';
-import { Prize, PrizeType } from '../../lib/types';
+import { Prize } from '../../lib/types';
 import { useStyles } from './styles';
 import { shortenPubkeyString } from '../../lib/utils';
 import { Close, Launch } from '@material-ui/icons';
@@ -32,7 +32,7 @@ const PrizeDetailsModal: FC<PrizeDetailsModalProps> = ({
   const { device } = useViewport();
   const classes = useStyles({ device });
 
-  const imageUrl = prize.meta.imageUri
+  const imageUrl = prize.meta.imageUri;
 
   return (
     <Modal

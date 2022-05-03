@@ -17,7 +17,6 @@ import { useStyles } from './styles';
 import PrizeGalleryOngoing from './components/PrizeGalleryOngoing';
 import { useViewport } from '../../hooks/useViewport';
 import { DeviceType } from '../../providers/ViewportProvider';
-import Spacer from '../../components/Spacer';
 
 interface IRaffleOngoingScreenProps {
   raffle: Raffle;
