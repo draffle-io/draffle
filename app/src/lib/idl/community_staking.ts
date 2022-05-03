@@ -1,5 +1,5 @@
 export type CommunityStaking = {
-  "version": "0.0.0",
+  "version": "0.1.0",
   "name": "community_staking",
   "instructions": [
     {
@@ -358,27 +358,27 @@ export type CommunityStaking = {
   ],
   "errors": [
     {
-      "code": 300,
+      "code": 6000,
       "name": "AmountTooLarge",
       "msg": "Amount too large"
     },
     {
-      "code": 301,
+      "code": 6001,
       "name": "InvalidCalculation",
       "msg": "Invalid calculation"
     },
     {
-      "code": 302,
+      "code": 6002,
       "name": "InsufficientAmount",
       "msg": "Insufficient amount"
     },
     {
-      "code": 303,
+      "code": 6003,
       "name": "MultiplierTooLarge",
       "msg": "Multiplier too large"
     },
     {
-      "code": 304,
+      "code": 6004,
       "name": "ControllerDisabled",
       "msg": "Controller is disabled"
     }
@@ -386,7 +386,7 @@ export type CommunityStaking = {
 };
 
 export const IDL: CommunityStaking = {
-  "version": "0.0.0",
+  "version": "0.1.0",
   "name": "community_staking",
   "instructions": [
     {
@@ -745,27 +745,27 @@ export const IDL: CommunityStaking = {
   ],
   "errors": [
     {
-      "code": 300,
+      "code": 6000,
       "name": "AmountTooLarge",
       "msg": "Amount too large"
     },
     {
-      "code": 301,
+      "code": 6001,
       "name": "InvalidCalculation",
       "msg": "Invalid calculation"
     },
     {
-      "code": 302,
+      "code": 6002,
       "name": "InsufficientAmount",
       "msg": "Insufficient amount"
     },
     {
-      "code": 303,
+      "code": 6003,
       "name": "MultiplierTooLarge",
       "msg": "Multiplier too large"
     },
     {
-      "code": 304,
+      "code": 6004,
       "name": "ControllerDisabled",
       "msg": "Controller is disabled"
     }

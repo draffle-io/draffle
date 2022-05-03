@@ -20,10 +20,11 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js';
-import { AnchorTypes } from '@saberhq/anchor-contrib';
-import { BN } from '@project-serum/anchor';
-import { CommunityStaking as CommunityStakingIdl } from '../../lib/idl/community_staking';
-import CommunityStakingJson from '../../lib/idl/community_staking.json';
+import { AnchorProvider, BN, IdlAccounts } from '@project-serum/anchor';
+import {
+  CommunityStaking,
+  IDL as CommunityStakingIdl,
+} from '../../lib/idl/community_staking';
 import { TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
 import { Program, utils } from '@project-serum/anchor';
 import {
@@ -62,18 +63,14 @@ if (!STAKING_TOKEN_INFO) {
 }
 const STAKING_TOKEN_MINT = new PublicKey(STAKING_TOKEN_INFO.address);
 
-export type CommunityStakingTypes = AnchorTypes<
-  CommunityStakingIdl,
-  {
-    registry: RegistryType;
-    stakeAccount: StakeAccountType;
-  }
->;
-
-type Accounts = CommunityStakingTypes['Accounts'];
-export type RegistryType = Accounts['registry'];
-export type StakeAccountType = Accounts['stakeAccount'];
-export type CommunityStakingProgram = CommunityStakingTypes['Program'];
+export type RegistryType = IdlAccounts<CommunityStaking>['registry'];
+export type StakeAccountType = IdlAccounts<CommunityStaking>['stakeAccount'];
+export type CommunityStakingProgram = Omit<
+  Program<CommunityStaking>,
+  'provider'
+> & {
+  provider: AnchorProvider;
+};
 
 const StakeScreen: FC = () => {
   const classes = useStyles();
@@ -86,13 +83,12 @@ const StakeScreen: FC = () => {
   const [amount, setAmount] = useState<string>('');
   const [buyerATABalance, setBuyerATABalance] = useState<u64>();
 
-  const stakingClient = useMemo(() => {
-    // @ts-ignore
-    const stakingClient = new Program(
-      CommunityStakingJson as CommunityStakingIdl,
+  const stakingClient: CommunityStakingProgram = useMemo(() => {
+    const stakingClient = new Program<CommunityStaking>(
+      CommunityStakingIdl,
       COMMUNITY_STAKING_PROGRAM_ID,
       customProviderFactory(connection, anchorWallet)
-    ) as CommunityStakingProgram;
+    ) as unknown as CommunityStakingProgram;
     return stakingClient;
   }, [connection, anchorWallet]);
 

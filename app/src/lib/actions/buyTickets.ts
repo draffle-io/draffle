@@ -143,7 +143,7 @@ export const buyTickets = async (
     })
   );
 
-  return await draffleClient.provider.send(
+  return draffleClient.provider.sendAndConfirm(
     new Transaction().add(...instructions)
   );
 };
