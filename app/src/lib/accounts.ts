@@ -1,4 +1,4 @@
-import { Provider, utils } from '@project-serum/anchor';
+import { AnchorProvider, Provider, utils } from '@project-serum/anchor';
 import { getTokenAccount } from '@project-serum/common';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -10,7 +10,7 @@ import { PublicKey } from '@solana/web3.js';
 import * as math from 'mathjs';
 
 export const getWalletLamports = async (
-  provider: Provider
+  provider: AnchorProvider
 ): Promise<number | undefined> => {
   if (!provider.wallet.publicKey) return;
 
@@ -22,7 +22,7 @@ export const getWalletLamports = async (
 };
 
 export const getBuyerATABalance = async (
-  provider: Provider,
+  provider: AnchorProvider,
   proceedsMint: PublicKey
 ): Promise<u64 | undefined> => {
   const buyerATA = await Token.getAssociatedTokenAddress(
@@ -33,7 +33,11 @@ export const getBuyerATABalance = async (
   );
 
   try {
-    const accountInfo = await getTokenAccount(provider, buyerATA);
+    const accountInfo = await getTokenAccount(
+      // @ts-ignore
+      provider,
+      buyerATA
+    );
     return accountInfo.amount;
   } catch (error: any) {
     console.error(error);

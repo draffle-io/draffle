@@ -20,7 +20,7 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js';
-import { BN, IdlAccounts } from '@project-serum/anchor';
+import { AnchorProvider, BN, IdlAccounts } from '@project-serum/anchor';
 import {
   CommunityStaking,
   IDL as CommunityStakingIdl,
@@ -88,7 +88,7 @@ const StakeScreen: FC = () => {
       CommunityStakingIdl,
       COMMUNITY_STAKING_PROGRAM_ID,
       customProviderFactory(connection, anchorWallet)
-    );
+    ) as unknown as CommunityStakingProgram;
     return stakingClient;
   }, [connection, anchorWallet]);
 
