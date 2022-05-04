@@ -13,7 +13,6 @@ use solana_sdk::{
     transaction::{Transaction, TransactionError},
 };
 use std::mem::size_of;
-use std::str::FromStr;
 
 #[tokio::test]
 async fn test_raffle() {
@@ -386,20 +385,31 @@ async fn test_raffle() {
         .await;
 
     // Collect proceeds
+    let treasury_token_account = spl_associated_token_account::get_associated_token_address(
+        &draffle::treasury::ID, &proceeds_mint_keypair.pubkey());
+    let mut collect_proceeds_account_metas = draffle::accounts::CollectProceeds {
+        raffle,
+        proceeds,
+        creator: payer_pk,
+        creator_proceeds: creator_proceeds_ata,
+        token_program: spl_token::ID,
+    }
+    .to_account_metas(None);
+    collect_proceeds_account_metas.push(AccountMeta::new(treasury_token_account, false));
     draffle_program_test
         .process_tx_and_assert_ok(
-            &[Instruction {
-                program_id,
-                accounts: draffle::accounts::CollectProceeds {
-                    raffle,
-                    proceeds,
-                    creator: payer_pk,
-                    creator_proceeds: creator_proceeds_ata,
-                    token_program: spl_token::ID,
-                }
-                .to_account_metas(None),
-                data: draffle::instruction::CollectProceeds.data(),
-            }],
+            &[
+                spl_associated_token_account::create_associated_token_account(
+                    &payer_pk,
+                    &draffle::treasury::ID,
+                    &proceeds_mint_keypair.pubkey(),
+                ),
+                Instruction {
+                    program_id,
+                    accounts: collect_proceeds_account_metas,
+                    data: draffle::instruction::CollectProceeds.data(),
+                },
+            ],
             &[],
         )
         .await;
