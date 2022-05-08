@@ -163,23 +163,24 @@ pub mod draffle {
 
         let entrants = ctx.accounts.entrants.load()?;
 
-        let winner_rand = randomness_tools::expand(randomness, prize_index);
-        let winner_index = winner_rand % entrants.total;
-
-        msg!(
-            "Ticket {} attempts claiming prize {} (winner is {})",
-            ticket_index,
-            prize_index,
-            winner_index
-        );
-        msg!("{} {}", winner_rand, winner_index);
-
         // When total number of entrants is zero we bypass the winner check and verify the "winner_token_account" belongs to the raffle creator,
         if entrants.total == 0 {
             if ctx.accounts.winner_token_account.owner != raffle.creator {
                 return Err(RaffleError::OnlyCreatorCanClaimNoEntrantRafflePrizes.into());
             }
+            msg!("Raffle creator claiming prize {} of empty raffle", prize_index);
         } else {
+            let winner_rand = randomness_tools::expand(randomness, prize_index);
+            let winner_index = winner_rand % entrants.total;
+    
+            msg!(
+                "Ticket {} attempts claiming prize {} (winner is {})",
+                ticket_index,
+                prize_index,
+                winner_index
+            );
+            msg!("{} {}", winner_rand, winner_index);
+
             if ticket_index != winner_index {
                 return Err(RaffleError::TicketHasNotWon.into());
             }
