@@ -10,7 +10,7 @@ import { Skeleton } from '@material-ui/lab';
 import { ArrowForward } from '@material-ui/icons';
 import { useHistory } from 'react-router';
 
-import { PrizeType, Raffle } from '../../lib/types';
+import { Raffle } from '../../lib/types';
 import { routes } from '../../router/routes';
 import Countdown from '../Countdown';
 import { getDisplayAmount } from '../../lib/accounts';
@@ -45,10 +45,9 @@ const RaffleCard: FC<RaffleCardProps> = ({
   if (raffle.prizes.length === 0) return null;
 
   const prize = raffle.prizes[0];
-  const imageUrl =
-    raffle.metadata.overviewImageUri
-      ? raffle.metadata.overviewImageUri
-      : prize.meta.imageUri;
+  const imageUrl = raffle.metadata.overviewImageUri
+    ? raffle.metadata.overviewImageUri
+    : prize.meta.imageUri;
 
   return (
     <Card
@@ -86,7 +85,9 @@ const RaffleCard: FC<RaffleCardProps> = ({
         <div className={classes.detailsRow1}>
           {raffle.metadata.name.length > MAX_TITLE_LENGTH ? (
             <Tooltip title={raffle.metadata.name} placement="top">
-              <div>{raffle.metadata.name.slice(0, MAX_TITLE_LENGTH - 4)} ...</div>
+              <div>
+                {raffle.metadata.name.slice(0, MAX_TITLE_LENGTH - 4)} ...
+              </div>
             </Tooltip>
           ) : (
             raffle.metadata.name

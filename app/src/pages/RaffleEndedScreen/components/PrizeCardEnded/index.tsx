@@ -1,4 +1,4 @@
-import React, { FC, useMemo, useState } from 'react';
+import { FC, useMemo, useState } from 'react';
 import {
   Card,
   CardActions,
@@ -10,7 +10,7 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 
-import { Prize, PrizeType, Raffle } from '../../../../lib/types';
+import { Prize, Raffle } from '../../../../lib/types';
 import useRandomDrawer from '../../../../hooks/useRandomDrawer';
 import useCommonStyles from '../../../../assets/styles';
 import { useStyles } from './styles';

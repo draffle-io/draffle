@@ -4,13 +4,22 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar;
 use anchor_spl::token::Token;
 use anchor_spl::token::{self, Mint, TokenAccount};
+use std::convert::TryFrom;
 
 pub const ENTRANTS_SIZE: u32 = 5000;
 pub const TIME_BUFFER: i64 = 20;
 
-pub const TREASURY_FEE_BPS: u64 =  10u64;
-// Replace with your treasury
-//pub const TREASURY: Pubkey = [];
+#[cfg(not(feature = "production"))]
+pub const PROTOCOL_FEE_BPS: u128 = 10;
+
+#[cfg(feature = "production")]
+pub const PROTOCOL_FEE_BPS: u128 = 0;
+
+pub mod treasury {
+    use super::*;
+    // Replace with your treasury, this is the default treasury for testing purposes
+    declare_id!("Treasury11111111111111111111111111111111112");
+}
 
 #[cfg(not(feature = "production"))]
 declare_id!("dRaFFLe111111111111111111111111111111111112");
@@ -164,13 +173,22 @@ pub mod draffle {
             winner_index
         );
         msg!("{} {}", winner_rand, winner_index);
-        if ticket_index != winner_index {
-            return Err(RaffleError::TicketHasNotWon.into());
-        }
 
-        if ctx.accounts.winner_token_account.owner.key() != entrants.entrants[ticket_index as usize]
-        {
-            return Err(RaffleError::TokenAccountNotOwnedByWinner.into());
+        // When total number of entrants is zero we bypass the winner check and verify the "winner_token_account" belongs to the raffle creator,
+        if entrants.total == 0 {
+            if ctx.accounts.winner_token_account.owner != raffle.creator {
+                return Err(RaffleError::OnlyCreatorCanClaimNoEntrantRafflePrizes.into());
+            }
+        } else {
+            if ticket_index != winner_index {
+                return Err(RaffleError::TicketHasNotWon.into());
+            }
+
+            if ctx.accounts.winner_token_account.owner.key()
+                != entrants.entrants[ticket_index as usize]
+            {
+                return Err(RaffleError::TokenAccountNotOwnedByWinner.into());
+            }
         }
 
         if ctx.accounts.prize.amount == 0 {
@@ -181,8 +199,6 @@ pub mod draffle {
             &[b"raffle".as_ref(), raffle.entrants.as_ref()],
             ctx.program_id,
         );
-        let seeds = &[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]];
-        let signer_seeds = &[&seeds[..]];
 
         token::transfer(
             CpiContext::new_with_signer(
@@ -192,7 +208,7 @@ pub mod draffle {
                     to: ctx.accounts.winner_token_account.to_account_info(),
                     authority: raffle_account_info,
                 },
-                signer_seeds,
+                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]]],
             ),
             ctx.accounts.prize.amount,
         )?;
@@ -205,7 +221,9 @@ pub mod draffle {
         Ok(())
     }
 
-    pub fn collect_proceeds(ctx: Context<CollectProceeds>) -> Result<()> {
+    pub fn collect_proceeds<'info>(
+        ctx: Context<'_, '_, '_, 'info, CollectProceeds<'info>>,
+    ) -> Result<()> {
         let raffle = &ctx.accounts.raffle;
 
         if !raffle.randomness.is_some() {
@@ -216,8 +234,19 @@ pub mod draffle {
             &[b"raffle".as_ref(), raffle.entrants.as_ref()],
             ctx.program_id,
         );
-        let seeds = &[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]];
-        let signer_seeds = &[&seeds[..]];
+
+        let proceeds_amount = ctx.accounts.proceeds.amount;
+        let protocol_fee_amount = u64::try_from(
+            (proceeds_amount as u128)
+                .checked_mul(PROTOCOL_FEE_BPS)
+                .ok_or(RaffleError::InvalidCalculation)?,
+        )
+        .map_err(|_| RaffleError::InvalidCalculation)?
+        .checked_div(10_000)
+        .ok_or(RaffleError::InvalidCalculation)?;
+        let creator_proceeds = proceeds_amount
+            .checked_sub(protocol_fee_amount)
+            .ok_or(RaffleError::InvalidCalculation)?;
 
         token::transfer(
             CpiContext::new_with_signer(
@@ -227,10 +256,31 @@ pub mod draffle {
                     to: ctx.accounts.creator_proceeds.to_account_info(),
                     authority: ctx.accounts.raffle.to_account_info(),
                 },
-                signer_seeds,
+                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]]],
             ),
-            ctx.accounts.proceeds.amount,
+            creator_proceeds,
         )?;
+
+        if PROTOCOL_FEE_BPS > 0 {
+            let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
+            let treasury_token_account: Account<TokenAccount> =
+                Account::try_from(&remaining_accounts_iter.next().unwrap())?;
+            if treasury_token_account.owner != treasury::ID {
+                return Err(RaffleError::InvalidTreasuryTokenAccountOwner.into());
+            }
+            token::transfer(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    token::Transfer {
+                        from: ctx.accounts.proceeds.to_account_info(),
+                        to: treasury_token_account.to_account_info(),
+                        authority: ctx.accounts.raffle.to_account_info(),
+                    },
+                    &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]]],
+                ),
+                protocol_fee_amount,
+            )?;
+        }
 
         Ok(())
     }
@@ -431,4 +481,8 @@ pub enum RaffleError {
     UnclaimedPrizes,
     #[msg("Invalid recent blockhashes")]
     InvalidRecentBlockhashes,
+    #[msg("Only the creator can calin no entrant raffle prizes")]
+    OnlyCreatorCanClaimNoEntrantRafflePrizes,
+    #[msg("Invalid treasury token account owner")]
+    InvalidTreasuryTokenAccountOwner,
 }

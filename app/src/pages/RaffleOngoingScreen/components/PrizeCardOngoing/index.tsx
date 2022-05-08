@@ -10,7 +10,7 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 
-import { Prize, PrizeType } from '../../../../lib/types';
+import { Prize } from '../../../../lib/types';
 import { useStyles } from './styles';
 import { useViewport } from '../../../../hooks/useViewport';
 import ShortenedString from '../../../../components/ShortenedString';
