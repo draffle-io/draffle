@@ -6,6 +6,7 @@ import { customProviderFactory } from '../lib/anchorUtils';
 import { Draffle, IDL as DraffleIdl } from '../lib/idl/draffle';
 import { Dispenser, IDL as DispenserIdl } from '../lib/idl/dispenser';
 import { DISPENSER_PROGRAM_ID, DRAFFLE_PROGRAM_ID } from '../config/programIds';
+import { PublicKey } from '@solana/web3.js';
 
 export const ProgramApisContext = createContext<{
   draffleClient: DraffleProgram;
@@ -14,6 +15,9 @@ export const ProgramApisContext = createContext<{
 
 export type RaffleDataRaw = IdlAccounts<Draffle>['raffle'];
 export type EntrantsDataRaw = IdlAccounts<Draffle>['entrants'];
+export type EntrantsData = EntrantsDataRaw & {
+  entrants: PublicKey[];
+};
 export type DraffleProgram = Omit<Program<Draffle>, 'provider'> & {
   provider: AnchorProvider;
 };

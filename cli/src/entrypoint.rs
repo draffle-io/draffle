@@ -16,7 +16,6 @@ use bincode::deserialize;
 use chrono::NaiveDateTime;
 use clap::Parser;
 use spl_associated_token_account;
-use std::mem::size_of;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -205,7 +204,8 @@ fn create_raffle(
         "Cluster clock unix_timestamp: {:}, raffle end_timestamp: {:}",
         clock.unix_timestamp, end_timestamp
     );
-    let entrants_account_size = 8 + size_of::<draffle::Entrants>();
+    let max_entrants = max_entrants.unwrap_or(draffle::ENTRANTS_SIZE);
+    let entrants_account_size = 8 + 4 + 4 + 32 * max_entrants as usize;
     program_client
         .request()
         .instruction(system_instruction::create_account(
@@ -230,7 +230,7 @@ fn create_raffle(
         .args(draffle::instruction::CreateRaffle {
             end_timestamp,
             ticket_price,
-            max_entrants: max_entrants.unwrap_or(draffle::ENTRANTS_SIZE),
+            max_entrants,
         })
         .signer(&entrants_keypair)
         .send()?;

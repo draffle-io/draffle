@@ -6,6 +6,7 @@ import { AccountInfo, Connection, PublicKey } from '@solana/web3.js';
 import { tokenInfoMap, UNKNOWN_TOKEN_INFO } from '../../config/tokenRegistry';
 import {
   DraffleProgram,
+  EntrantsData,
   EntrantsDataRaw,
   RaffleDataRaw,
 } from '../../providers/ProgramApisProvider';
@@ -165,14 +166,15 @@ const processPrize = async (
   }
 };
 
-export const toEntrantsProcessed = (entrantsDataRaw: EntrantsDataRaw) => {
-  const entrantsProcessed = entrantsDataRaw.entrants
-    .slice(0, entrantsDataRaw.total)
+export const toEntrantsProcessed = (entrantsData: EntrantsData) => {
+  const entrantsProcessed = entrantsData.entrants
+    .slice(0, entrantsData.total)
     .reduce<EntrantsMap>((acc, entrant, index) => {
-      if (acc.has(entrant.toString())) {
-        acc.get(entrant.toString())!.tickets.push(index);
+      const entrantValue = acc.get(entrant.toBase58());
+      if (entrantValue) {
+        entrantValue.tickets.push(index);
       } else {
-        acc.set(entrant.toString(), {
+        acc.set(entrant.toBase58(), {
           publicKey: entrant,
           tickets: [index],
         });
@@ -183,11 +185,31 @@ export const toEntrantsProcessed = (entrantsDataRaw: EntrantsDataRaw) => {
   return entrantsProcessed;
 };
 
+export const deserializeEntrantsData = (
+  draffleClient: DraffleProgram,
+  data: Buffer
+): EntrantsData => {
+  const entrantsDataRaw = draffleClient.coder.accounts.decode<EntrantsDataRaw>(
+    'entrants',
+    data
+  );
+  const entrants: PublicKey[] = [];
+  const entrantsFieldData = data.subarray(8 + 4 + 4);
+  for (let i = 0; i++; i < entrantsDataRaw.max) {
+    entrants.push(new PublicKey(entrantsFieldData.slice(i * 32, (i + 1) * 32)));
+  }
+  return {
+    ...entrantsDataRaw,
+    entrants,
+  };
+};
+
 export const getRaffleProgramAccounts = async (
   draffleClient: DraffleProgram
-): Promise<
-  [a: ProgramAccount<RaffleDataRaw>[], b: ProgramAccount<EntrantsDataRaw>[]]
-> => {
+): Promise<{
+  raffleDataRawProgramAccounts: ProgramAccount<RaffleDataRaw>[];
+  entrantsDataProgramAccounts: ProgramAccount<EntrantsData>[];
+}> => {
   const result = await draffleClient.provider.connection.getProgramAccounts(
     draffleClient.programId
   );
@@ -196,7 +218,7 @@ export const getRaffleProgramAccounts = async (
     BorshAccountsCoder.accountDiscriminator('Entrants');
 
   const raffleDataRawProgramAccounts: ProgramAccount<RaffleDataRaw>[] = [];
-  const entrantsDataRawProgramAccounts: ProgramAccount<EntrantsDataRaw>[] = [];
+  const entrantsDataProgramAccounts: ProgramAccount<EntrantsData>[] = [];
 
   result.forEach(({ pubkey, account }) => {
     const discriminator = account.data.slice(0, 8);
@@ -210,16 +232,13 @@ export const getRaffleProgramAccounts = async (
         ),
       });
     } else if (entrantsDiscriminator.compare(discriminator) === 0) {
-      entrantsDataRawProgramAccounts.push({
+      entrantsDataProgramAccounts.push({
         publicKey: pubkey,
-        account: draffleClient.coder.accounts.decode<EntrantsDataRaw>(
-          'entrants',
-          account.data
-        ),
+        account: deserializeEntrantsData(draffleClient, account.data),
       });
     } else {
       console.log(`Could not decode ${pubkey.toBase58()}`);
     }
   });
-  return [raffleDataRawProgramAccounts, entrantsDataRawProgramAccounts];
+  return { raffleDataRawProgramAccounts, entrantsDataProgramAccounts };
 };
