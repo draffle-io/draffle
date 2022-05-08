@@ -2,7 +2,6 @@ use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::{prelude::*, InstructionData};
 use assert_matches::assert_matches;
 use bincode::deserialize;
-use bytemuck;
 use draffle::{Entrants, Raffle};
 use solana_program_test::{processor, tokio, ProgramTest, ProgramTestContext};
 use solana_sdk::{
@@ -12,7 +11,7 @@ use solana_sdk::{
     system_instruction, system_program, sysvar,
     transaction::{Transaction, TransactionError},
 };
-use std::mem::size_of;
+use std::cell::RefCell;
 
 #[tokio::test]
 async fn test_raffle() {
@@ -83,13 +82,14 @@ async fn test_raffle() {
     let end_timestamp: i64 = clock.unix_timestamp + 5;
     let ticket_price = 1234;
 
+    let entrants_account_data_size = 8 + 4 + 4 + 32 * 5000;
     let entrants_rent_exempt_threshold = draffle_program_test
         .context
         .banks_client
         .get_rent()
         .await
         .unwrap()
-        .minimum_balance(8 + size_of::<draffle::Entrants>());
+        .minimum_balance(entrants_account_data_size);
 
     draffle_program_test
         .process_tx_and_assert_ok(
@@ -98,7 +98,7 @@ async fn test_raffle() {
                     &payer_pk,
                     &entrants_keypair.pubkey(),
                     entrants_rent_exempt_threshold,
-                    8 + size_of::<draffle::Entrants>() as u64,
+                    entrants_account_data_size as u64,
                     &program_id,
                 ),
                 Instruction {
@@ -282,12 +282,12 @@ async fn test_raffle() {
         .unwrap()
         .unwrap()
         .data;
-    let entrants: &Entrants = bytemuck::from_bytes::<Entrants>(&entrants_data[8..]);
-    println!("{:?}", &entrants.entrants[..20]);
+    let entrants: Entrants = Entrants::try_deserialize(&mut entrants_data.as_ref()).unwrap();
+    // println!("{:?}", &entrants.entrants[..20]);
 
     let first_prize_winner_ticket =
         draffle::randomness_tools::expand(raffle_state.randomness.unwrap(), 0) % entrants.total;
-    let first_prize_winner = entrants.entrants[first_prize_winner_ticket as usize];
+    let first_prize_winner = Entrants::get_entrant(RefCell::new(&mut entrants_data.clone()[..]).borrow(), first_prize_winner_ticket as usize);
     let winner_prize_ata = spl_associated_token_account::get_associated_token_address(
         &first_prize_winner,
         &first_prize_mint_keypair.pubkey(),
@@ -349,7 +349,7 @@ async fn test_raffle() {
     // Claim second prize
     let second_prize_winner_ticket =
         draffle::randomness_tools::expand(raffle_state.randomness.unwrap(), 1) % entrants.total;
-    let second_prize_winner = entrants.entrants[second_prize_winner_ticket as usize];
+    let second_prize_winner = Entrants::get_entrant(RefCell::new(&mut entrants_data.clone()[..]).borrow(), second_prize_winner_ticket as usize);
     let second_prize_winner_ata = spl_associated_token_account::get_associated_token_address(
         &second_prize_winner,
         &second_prize_mint_keypair.pubkey(),
@@ -386,7 +386,9 @@ async fn test_raffle() {
 
     // Collect proceeds
     let treasury_token_account = spl_associated_token_account::get_associated_token_address(
-        &draffle::treasury::ID, &proceeds_mint_keypair.pubkey());
+        &draffle::treasury::ID,
+        &proceeds_mint_keypair.pubkey(),
+    );
     let mut collect_proceeds_account_metas = draffle::accounts::CollectProceeds {
         raffle,
         proceeds,

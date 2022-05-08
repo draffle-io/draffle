@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar;
 use anchor_spl::token::Token;
 use anchor_spl::token::{self, Mint, TokenAccount};
+use std::cell::{RefMut, Ref};
 use std::convert::TryFrom;
 
 pub const ENTRANTS_SIZE: u32 = 5000;
@@ -47,11 +48,14 @@ pub mod draffle {
         raffle.ticket_price = ticket_price;
         raffle.entrants = ctx.accounts.entrants.key();
 
-        let mut entrants = ctx.accounts.entrants.load_init()?;
-        if max_entrants > ENTRANTS_SIZE {
-            return Err(RaffleError::MaxEntrantsTooLarge.into());
-        }
+        let entrants = &mut ctx.accounts.entrants;
+        entrants.total = 0;
         entrants.max = max_entrants;
+
+        // Verify that we have enough space for max entrants
+        if entrants.to_account_info().data_len() < 8 + 4 + 4 + 32 * max_entrants as usize {
+            return Err(RaffleError::EntrantsAccountTooSmallForMaxEntrants.into());
+        }
 
         Ok(())
     }
@@ -95,14 +99,18 @@ pub mod draffle {
     pub fn buy_tickets(ctx: Context<BuyTickets>, amount: u32) -> Result<()> {
         let clock = Clock::get()?;
         let raffle = &mut ctx.accounts.raffle;
-        let mut entrants = ctx.accounts.entrants.load_mut()?;
+        let entrants = &mut ctx.accounts.entrants;
 
         if clock.unix_timestamp > raffle.end_timestamp {
             return Err(RaffleError::RaffleEnded.into());
         }
 
+        let entrants_account_info = entrants.to_account_info();
         for _ in 0..amount {
-            entrants.append(ctx.accounts.buyer_token_account.owner)?;
+            entrants.append_entrant(
+                entrants_account_info.data.borrow_mut(),
+                ctx.accounts.buyer_token_account.owner,
+            )?;
         }
 
         token::transfer(
@@ -161,18 +169,21 @@ pub mod draffle {
             None => return Err(RaffleError::WinnerNotDrawn.into()),
         };
 
-        let entrants = ctx.accounts.entrants.load()?;
+        let entrants = &ctx.accounts.entrants;
 
         // When total number of entrants is zero we bypass the winner check and verify the "winner_token_account" belongs to the raffle creator,
         if entrants.total == 0 {
             if ctx.accounts.winner_token_account.owner != raffle.creator {
                 return Err(RaffleError::OnlyCreatorCanClaimNoEntrantRafflePrizes.into());
             }
-            msg!("Raffle creator claiming prize {} of empty raffle", prize_index);
+            msg!(
+                "Raffle creator claiming prize {} of empty raffle",
+                prize_index
+            );
         } else {
             let winner_rand = randomness_tools::expand(randomness, prize_index);
             let winner_index = winner_rand % entrants.total;
-    
+
             msg!(
                 "Ticket {} attempts claiming prize {} (winner is {})",
                 ticket_index,
@@ -186,7 +197,10 @@ pub mod draffle {
             }
 
             if ctx.accounts.winner_token_account.owner.key()
-                != entrants.entrants[ticket_index as usize]
+                != Entrants::get_entrant(
+                    ctx.accounts.entrants.to_account_info().data.borrow(),
+                    ticket_index as usize,
+                )
             {
                 return Err(RaffleError::TokenAccountNotOwnedByWinner.into());
             }
@@ -288,7 +302,7 @@ pub mod draffle {
 
     pub fn close_entrants(ctx: Context<CloseEntrants>) -> Result<()> {
         let raffle = &ctx.accounts.raffle;
-        let entrants = ctx.accounts.entrants.load()?;
+        let entrants = &ctx.accounts.entrants;
         if (raffle.claimed_prizes != raffle.total_prizes) && entrants.total != 0 {
             return Err(RaffleError::UnclaimedPrizes.into());
         }
@@ -304,11 +318,11 @@ pub struct CreateRaffle<'info> {
         seeds = [b"raffle".as_ref(), entrants.key().as_ref()],
         bump,
         payer = creator,
-        space = 8 + 300, // Option serialization workaround
+        space = 8 + 32 + 4 + 4 + 4 + 32 + 8 + 8 + 32,
     )]
     pub raffle: Account<'info, Raffle>,
     #[account(zero)]
-    pub entrants: AccountLoader<'info, Entrants>,
+    pub entrants: Account<'info, Entrants>,
     #[account(mut)]
     pub creator: Signer<'info>,
     #[account(
@@ -355,7 +369,7 @@ pub struct BuyTickets<'info> {
     #[account(has_one = entrants)]
     pub raffle: Account<'info, Raffle>,
     #[account(mut)]
-    pub entrants: AccountLoader<'info, Entrants>,
+    pub entrants: Account<'info, Entrants>,
     #[account(
         mut,
         seeds = [raffle.key().as_ref(), b"proceeds"],
@@ -382,7 +396,7 @@ pub struct RevealWinners<'info> {
 pub struct ClaimPrize<'info> {
     #[account(mut, has_one = entrants)]
     pub raffle: Account<'info, Raffle>,
-    pub entrants: AccountLoader<'info, Entrants>,
+    pub entrants: Account<'info, Entrants>,
     #[account(
         mut,
         seeds = [raffle.key().as_ref(), b"prize", &prize_index.to_le_bytes()],
@@ -418,12 +432,12 @@ pub struct CloseEntrants<'info> {
     #[account(has_one = creator, has_one = entrants)]
     pub raffle: Account<'info, Raffle>,
     #[account(mut, close = creator)]
-    pub entrants: AccountLoader<'info, Entrants>,
+    pub entrants: Account<'info, Entrants>,
     pub creator: Signer<'info>,
 }
 
 #[account]
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Raffle {
     pub creator: Pubkey,
     pub total_prizes: u32,
@@ -434,28 +448,38 @@ pub struct Raffle {
     pub entrants: Pubkey,
 }
 
-#[account(zero_copy)]
+#[account]
 pub struct Entrants {
     pub total: u32,
     pub max: u32,
-    pub entrants: [Pubkey; 5000], // ENTRANTS_SIZE
+    // Entrants array of length max
+    // pub entrants: [Pubkey; max],
 }
 
 impl Entrants {
-    fn append(&mut self, entrant: Pubkey) -> Result<()> {
+    pub fn get_entrant(entrants_data: Ref<&mut [u8]>, index: usize) -> Pubkey {
+        let start_index = 8 + 4 + 4 + 32 * index;
+        Pubkey::new(&entrants_data[start_index..start_index + 32])
+    }
+
+    fn append_entrant(&mut self, mut entrants_data: RefMut<&mut [u8]>, entrant: Pubkey) -> Result<()> {
         if self.total >= self.max {
             return Err(RaffleError::NotEnoughTicketsLeft.into());
         }
-        self.entrants[self.total as usize] = entrant;
+        let current_index = 8 + 4 + 4 + 32 * self.total as usize;
+        let entrant_slice: &mut [u8] =
+            &mut entrants_data[current_index..current_index + 32];
+        entrant_slice.copy_from_slice(&entrant.to_bytes());
         self.total += 1;
+
         Ok(())
     }
 }
 
 #[error_code]
 pub enum RaffleError {
-    #[msg("Max entrants is too large")]
-    MaxEntrantsTooLarge,
+    #[msg("Entrants account too small for max entrants")]
+    EntrantsAccountTooSmallForMaxEntrants,
     #[msg("Raffle has ended")]
     RaffleEnded,
     #[msg("Invalid prize index")]
