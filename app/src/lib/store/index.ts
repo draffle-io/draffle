@@ -195,7 +195,7 @@ export const deserializeEntrantsData = (
   );
   const entrants: PublicKey[] = [];
   const entrantsFieldData = data.subarray(8 + 4 + 4);
-  for (let i = 0; i++; i < entrantsDataRaw.max) {
+  for (let i = 0; i < entrantsDataRaw.max; i++) {
     entrants.push(new PublicKey(entrantsFieldData.slice(i * 32, (i + 1) * 32)));
   }
   return {
