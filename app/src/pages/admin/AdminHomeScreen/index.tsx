@@ -1,12 +1,17 @@
-import { Card, Grid, IconButton, Typography } from '@material-ui/core';
+import { Card, Grid, IconButton, Typography, useTheme } from '@material-ui/core';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { FC, useEffect, useState } from 'react';
 import { useHistory } from 'react-router';
 import { Add } from '@material-ui/icons';
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import {
+  PublicKey,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
+} from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import BN from 'bn.js';
-
+import { useViewport } from '../../../hooks/useViewport';
+import { DeviceType } from '../../../providers/ViewportProvider';
 import Screen from '../../../components/layout/Screen';
 import WalletButton from '../../../components/layout/WalletButton';
 import Spacer from '../../../components/Spacer';
@@ -21,14 +26,19 @@ import {
 } from '../../../config/programIds';
 import { shortenPubkeyString } from '../../../lib/utils';
 import { VAULT_TOKEN_IN, VAULT_TOKEN_OUT } from '../../../config/accounts';
+import AddPrizeModal from '../../../components/AddPrizeModal/AddPrizeModal';
+import CreateRaffleModal from '../../../components/CreateRaffleModal/CreateRaffleModal';
 
 const AdminHomeScreen: FC = () => {
   const classes = useStyles();
   const { connected } = useWallet();
   const { push } = useHistory();
+  const { device } = useViewport();
   const { raffles, fetchAllRaffles } = useRafflesStore();
   const { dispenserClient } = useProgramApis();
-
+  const theme = useTheme()
+  const [raffleIsOpen, setRaffleIsOpen] = useState(false);
+  const [prizeIsOpen, setPrizeIsOpen] = useState(false);
   const [dispensers, setDispensers] = useState<
     { account: DispenserRegistryRaw; publicKey: PublicKey }[]
   >([]);
@@ -119,7 +129,25 @@ const AdminHomeScreen: FC = () => {
             </Grid>
           )}
           <Spacer height={'20px'} />
-          <Typography variant="h3">Ongoing raffles</Typography>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Typography variant="h3">Ongoing raffles</Typography>
+            <IconButton
+              size={'small'}
+              onClick={() =>
+                setRaffleIsOpen(true)
+              }
+            >
+              <Add className={classes.scrollButtonIcon} />
+            </IconButton>
+            <CreateRaffleModal isOpen={raffleIsOpen} setIsOpen={setRaffleIsOpen} />
+          </div>
           <Spacer height={'20px'} />
           <Grid container spacing={1} className={classes.raffleGrid}>
             {[...raffles.values()]
@@ -134,15 +162,30 @@ const AdminHomeScreen: FC = () => {
                   <Card
                     className={classes.raffleCard}
                     onClick={() =>
-                      push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
+                      raffle.metadata.name === "Unnamed Raffle" ? null : push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
                     }
                   >
                     <Typography>{raffle.metadata.name}</Typography>
-                    <Typography>
-                      <Typography>
-                        {raffle.endTimestamp.toISOString()}
-                      </Typography>
-                    </Typography>
+                    <Typography>{raffle.endTimestamp.toISOString()}</Typography>
+                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
+                    <Typography style={{wordBreak: "break-all", fontSize: "12px"}}>{raffle.publicKey.toBase58()}</Typography>
+                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
+                    <Typography onClick={() =>
+                      push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
+                    } style={{cursor: "pointer", color: theme.palette.primary.main}}>See Details</Typography>
+                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
+                    <div style={{display: "flex", height: "20px"}}>
+                      <Typography>Add Prize{' '}</Typography>
+                      <IconButton
+                        size={'small'}
+                        onClick={() =>
+                          setPrizeIsOpen(true)
+                            }
+                      >
+                        <Add className={classes.scrollButtonIcon} />
+                      </IconButton>
+                    </div>
+                      <AddPrizeModal isOpen={prizeIsOpen} setIsOpen={setPrizeIsOpen} raffle={raffle} />
                   </Card>
                 </Grid>
               ))}
@@ -163,12 +206,15 @@ const AdminHomeScreen: FC = () => {
                 >
                   <Card
                     className={classes.raffleCard}
-                    onClick={() =>
-                      push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
-                    }
                   >
                     <Typography>{raffle.metadata.name}</Typography>
                     <Typography>{raffle.endTimestamp.toISOString()}</Typography>
+                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
+                    <Typography style={{wordBreak: "break-all", fontSize: "12px"}}>{raffle.publicKey.toBase58()}</Typography>
+                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
+                    <Typography onClick={() =>
+                      push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
+                    } style={{cursor: "pointer", color: theme.palette.primary.main}}>See Details</Typography>
                   </Card>
                 </Grid>
               ))}

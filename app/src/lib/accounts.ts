@@ -1,4 +1,4 @@
-import { AnchorProvider, Provider, utils } from '@project-serum/anchor';
+import { AnchorProvider, utils } from '@project-serum/anchor';
 import { getTokenAccount } from '@project-serum/common';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
