@@ -1,7 +1,5 @@
 import { BN } from '@project-serum/anchor';
-import {
-  TOKEN_PROGRAM_ID,
-} from '@solana/spl-token';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
   PublicKey,
   TransactionInstruction,
@@ -21,12 +19,13 @@ export const createRaffle = async (
   ticketPrice: number,
   maxEntrants: number
 ) => {
+  // Create keypair for entrants account
+  let entrantsRaw = Keypair.generate();
+  let entrants = entrantsRaw.publicKey;
 
-  let entrantsRaw = Keypair.generate()
-  let entrants = entrantsRaw.publicKey
-
-  const RAFFLE_PREFIX = "raffle";
-  const PROCEEDS_PREFIX = "proceeds"
+  // Find PDA for Raffle
+  const RAFFLE_PREFIX = 'raffle';
+  const PROCEEDS_PREFIX = 'proceeds';
   async function getRaffleId(): Promise<PublicKey> {
     let [address] = await PublicKey.findProgramAddress(
       [Buffer.from(RAFFLE_PREFIX), entrants.toBuffer()],
@@ -35,8 +34,9 @@ export const createRaffle = async (
     return address;
   }
 
-  let raffleId = await getRaffleId()
-  console.log(raffleId)
+  let raffleId = await getRaffleId();
+
+  // Find PDA for Proceeds
   async function getProceedsId(): Promise<PublicKey> {
     let [address] = await PublicKey.findProgramAddress(
       [raffleId.toBuffer(), Buffer.from(PROCEEDS_PREFIX)],
@@ -44,15 +44,20 @@ export const createRaffle = async (
     );
     return address;
   }
-  let proceedsId = await getProceedsId()
-  console.log(proceedsId)
 
+  let proceedsId = await getProceedsId();
+
+  // Begin transaction instructions
   let instructions: TransactionInstruction[] = [];
 
-let dataLength = 8 + 4 + 4 + 32 * maxEntrants;
+  // Find rent for entrants max length
+  let dataLength = 8 + 4 + 4 + 32 * maxEntrants;
   const rentExemptionAmount =
-  await draffleClient.provider.connection.getMinimumBalanceForRentExemption(dataLength);
+    await draffleClient.provider.connection.getMinimumBalanceForRentExemption(
+      dataLength
+    );
 
+  // Fund entrants Account
   instructions.push(
     SystemProgram.createAccount({
       fromPubkey: creator,
@@ -63,29 +68,34 @@ let dataLength = 8 + 4 + 4 + 32 * maxEntrants;
     })
   );
 
+  // Create raffle
   instructions.push(
     draffleClient.instruction.createRaffle(
-          new BN(endTimestamp),
-          new BN(ticketPrice),
-          new BN(maxEntrants),
-          {
-            accounts: {
-              raffle: raffleId,
-              entrants: entrants,
-              creator: creator,
-              proceeds: proceedsId,
-              proceedsMint: proceedsMint,
-              systemProgram: SystemProgram.programId,
-              tokenProgram: TOKEN_PROGRAM_ID,
-              rent: SYSVAR_RENT_PUBKEY,
-            },
-          }
-        )
+      new BN(endTimestamp),
+      new BN(ticketPrice),
+      new BN(maxEntrants),
+      {
+        accounts: {
+          raffle: raffleId,
+          entrants: entrants,
+          creator: creator,
+          proceeds: proceedsId,
+          proceedsMint: proceedsMint,
+          systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
+        },
+      }
+    )
   );
 
-    console.log(`This is your raffle id: ${raffleId.toBase58()}, please use it to add prizes to your raffle`)
+  console.log(
+    `This is your raffle id: ${raffleId.toBase58()}, please use it to add prizes to your raffle`
+  );
 
+  // Sign with entrants keypair
   return draffleClient.provider.sendAndConfirm(
-    new Transaction().add(...instructions), [entrantsRaw]
+    new Transaction().add(...instructions),
+    [entrantsRaw]
   );
 };

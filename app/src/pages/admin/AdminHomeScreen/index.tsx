@@ -1,13 +1,15 @@
-import { Card, Grid, IconButton, Typography, useTheme } from '@material-ui/core';
+import {
+  Card,
+  Grid,
+  IconButton,
+  Typography,
+  useTheme,
+} from '@material-ui/core';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { FC, useEffect, useState } from 'react';
 import { useHistory } from 'react-router';
 import { Add } from '@material-ui/icons';
-import {
-  PublicKey,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-} from '@solana/web3.js';
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import BN from 'bn.js';
 import { useViewport } from '../../../hooks/useViewport';
@@ -36,7 +38,7 @@ const AdminHomeScreen: FC = () => {
   const { device } = useViewport();
   const { raffles, fetchAllRaffles } = useRafflesStore();
   const { dispenserClient } = useProgramApis();
-  const theme = useTheme()
+  const theme = useTheme();
   const [raffleIsOpen, setRaffleIsOpen] = useState(false);
   const [prizeIsOpen, setPrizeIsOpen] = useState(false);
   const [dispensers, setDispensers] = useState<
@@ -138,15 +140,13 @@ const AdminHomeScreen: FC = () => {
             }}
           >
             <Typography variant="h3">Ongoing raffles</Typography>
-            <IconButton
-              size={'small'}
-              onClick={() =>
-                setRaffleIsOpen(true)
-              }
-            >
+            <IconButton size={'small'} onClick={() => setRaffleIsOpen(true)}>
               <Add className={classes.scrollButtonIcon} />
             </IconButton>
-            <CreateRaffleModal isOpen={raffleIsOpen} setIsOpen={setRaffleIsOpen} />
+            <CreateRaffleModal
+              isOpen={raffleIsOpen}
+              setIsOpen={setRaffleIsOpen}
+            />
           </div>
           <Spacer height={'20px'} />
           <Grid container spacing={1} className={classes.raffleGrid}>
@@ -162,30 +162,52 @@ const AdminHomeScreen: FC = () => {
                   <Card
                     className={classes.raffleCard}
                     onClick={() =>
-                      raffle.metadata.name === "Unnamed Raffle" ? null : push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
+                      raffle.metadata.name === 'Unnamed Raffle'
+                        ? null
+                        : push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
                     }
                   >
                     <Typography>{raffle.metadata.name}</Typography>
                     <Typography>{raffle.endTimestamp.toISOString()}</Typography>
-                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-                    <Typography style={{wordBreak: "break-all", fontSize: "12px"}}>{raffle.publicKey.toBase58()}</Typography>
-                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-                    <Typography onClick={() =>
-                      push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
-                    } style={{cursor: "pointer", color: theme.palette.primary.main}}>See Details</Typography>
-                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-                    <div style={{display: "flex", height: "20px"}}>
-                      <Typography>Add Prize{' '}</Typography>
+                    <Spacer
+                      height={device === DeviceType.Phone ? '5px' : '10px'}
+                    />
+                    <Typography
+                      style={{ wordBreak: 'break-all', fontSize: '12px' }}
+                    >
+                      {raffle.publicKey.toBase58()}
+                    </Typography>
+                    <Spacer
+                      height={device === DeviceType.Phone ? '5px' : '10px'}
+                    />
+                    <Typography
+                      onClick={() =>
+                        push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
+                      }
+                      style={{
+                        cursor: 'pointer',
+                        color: theme.palette.primary.main,
+                      }}
+                    >
+                      See Details
+                    </Typography>
+                    <Spacer
+                      height={device === DeviceType.Phone ? '5px' : '10px'}
+                    />
+                    <div style={{ display: 'flex', height: '20px' }}>
+                      <Typography>Add Prize </Typography>
                       <IconButton
                         size={'small'}
-                        onClick={() =>
-                          setPrizeIsOpen(true)
-                            }
+                        onClick={() => setPrizeIsOpen(true)}
                       >
                         <Add className={classes.scrollButtonIcon} />
                       </IconButton>
                     </div>
-                      <AddPrizeModal isOpen={prizeIsOpen} setIsOpen={setPrizeIsOpen} raffle={raffle} />
+                    <AddPrizeModal
+                      isOpen={prizeIsOpen}
+                      setIsOpen={setPrizeIsOpen}
+                      raffle={raffle}
+                    />
                   </Card>
                 </Grid>
               ))}
@@ -204,17 +226,31 @@ const AdminHomeScreen: FC = () => {
                   spacing={3}
                   className={classes.raffleGridItem}
                 >
-                  <Card
-                    className={classes.raffleCard}
-                  >
+                  <Card className={classes.raffleCard}>
                     <Typography>{raffle.metadata.name}</Typography>
                     <Typography>{raffle.endTimestamp.toISOString()}</Typography>
-                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-                    <Typography style={{wordBreak: "break-all", fontSize: "12px"}}>{raffle.publicKey.toBase58()}</Typography>
-                    <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-                    <Typography onClick={() =>
-                      push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
-                    } style={{cursor: "pointer", color: theme.palette.primary.main}}>See Details</Typography>
+                    <Spacer
+                      height={device === DeviceType.Phone ? '5px' : '10px'}
+                    />
+                    <Typography
+                      style={{ wordBreak: 'break-all', fontSize: '12px' }}
+                    >
+                      {raffle.publicKey.toBase58()}
+                    </Typography>
+                    <Spacer
+                      height={device === DeviceType.Phone ? '5px' : '10px'}
+                    />
+                    <Typography
+                      onClick={() =>
+                        push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
+                      }
+                      style={{
+                        cursor: 'pointer',
+                        color: theme.palette.primary.main,
+                      }}
+                    >
+                      See Details
+                    </Typography>
                   </Card>
                 </Grid>
               ))}

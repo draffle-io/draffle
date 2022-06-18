@@ -25,7 +25,11 @@ interface AddPrizeModalProps {
   raffle: Raffle;
 }
 
-const AddPrizeModal: FC<AddPrizeModalProps> = ({ isOpen, setIsOpen, raffle }) => {
+const AddPrizeModal: FC<AddPrizeModalProps> = ({
+  isOpen,
+  setIsOpen,
+  raffle,
+}) => {
   const { device } = useViewport();
   const classes = useStyles({ device });
   const { draffleClient } = useProgramApis();
@@ -34,19 +38,31 @@ const AddPrizeModal: FC<AddPrizeModalProps> = ({ isOpen, setIsOpen, raffle }) =>
     setIsOpen(false);
   };
 
-  const handleAddPrize = useCallback(async (e: any) => {
-    e.preventDefault()
+  // Execture function, submit form, clear data
+  const handleAddPrize = useCallback(
+    async (e: any) => {
+      e.preventDefault();
 
-    await txHandler(() =>
-    addPrize(draffleClient, raffle, draffleClient.provider.wallet.publicKey, new PublicKey(e.target.prizeMint.value), e.target.prizeIndex.value, 1),
-    `Prize added successfully!`
-    )
+      // Use handler to give nice toast message
+      await txHandler(
+        () =>
+          addPrize(
+            draffleClient,
+            raffle,
+            draffleClient.provider.wallet.publicKey,
+            new PublicKey(e.target.prizeMint.value),
+            e.target.prizeIndex.value,
+            1
+          ),
+        `Prize added successfully!`
+      );
 
-    e.target.prizeMint.value = "";
-    e.target.prizeIndex.value = "";
-    setIsOpen(false);
-
-  },[draffleClient, raffle, setIsOpen])
+      e.target.prizeMint.value = '';
+      e.target.prizeIndex.value = '';
+      setIsOpen(false);
+    },
+    [draffleClient, raffle, setIsOpen]
+  );
 
   return (
     <Dialog
@@ -58,32 +74,32 @@ const AddPrizeModal: FC<AddPrizeModalProps> = ({ isOpen, setIsOpen, raffle }) =>
     >
       <div>
         <div className={classes.header}>
-        <IconButton size="small" onClick={() => setIsOpen(false)}>
-          <Close />
-        </IconButton>
+          <IconButton size="small" onClick={() => setIsOpen(false)}>
+            <Close />
+          </IconButton>
         </div>
         <DialogContent>
           <form onSubmit={handleAddPrize}>
-          <Typography variant="overline">Prize Mint ID</Typography>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="prizeMint"
-            type="text"
-            fullWidth
-            variant="standard"
-          />
-          <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-          <Typography variant="overline">Prize Index (Start at 0)</Typography>
-          <TextField
-            margin="dense"
-            id="prizeIndex"
-            type="text"
-            fullWidth
-            variant="standard"
-          />
-          <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-          <Button type="submit">Add Prize</Button>
+            <Typography variant="overline">Prize Mint ID</Typography>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="prizeMint"
+              type="text"
+              fullWidth
+              variant="standard"
+            />
+            <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
+            <Typography variant="overline">Prize Index (Start at 0)</Typography>
+            <TextField
+              margin="dense"
+              id="prizeIndex"
+              type="text"
+              fullWidth
+              variant="standard"
+            />
+            <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
+            <Button type="submit">Add Prize</Button>
           </form>
         </DialogContent>
       </div>

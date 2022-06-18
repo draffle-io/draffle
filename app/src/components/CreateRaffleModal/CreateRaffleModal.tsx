@@ -24,7 +24,10 @@ interface CreateRaffleModalProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const CreateRaffleModal: FC<CreateRaffleModalProps> = ({ isOpen, setIsOpen }) => {
+const CreateRaffleModal: FC<CreateRaffleModalProps> = ({
+  isOpen,
+  setIsOpen,
+}) => {
   const { device } = useViewport();
   const classes = useStyles({ device });
   const { draffleClient } = useProgramApis();
@@ -33,22 +36,33 @@ const CreateRaffleModal: FC<CreateRaffleModalProps> = ({ isOpen, setIsOpen }) =>
     setIsOpen(false);
   };
 
-  const handleRaffle = useCallback(async (e: any) => {
-    e.preventDefault()
-    console.log("tokenMint:", e.target.tokenMint.value)
-    console.log("ticketCost:", e.target.ticketCost.value)
-    console.log("maxEntrants:", e.target.maxEntrants.value)
-    console.log('endTimestamp:', e.target.endTimestamp.value);
-    await txHandler(() =>
-      createRaffle(draffleClient, draffleClient.provider.wallet.publicKey, new PublicKey(e.target.tokenMint.value), e.target.endTimestamp.value, e.target.ticketCost.value, e.target.maxEntrants.value),
-      `Raffle created successfully!`
-    )
-    e.target.tokenMint.value = "";
-    e.target.ticketCost.value = "";
-    e.target.maxEntrants.value = "";
-    e.target.endTimestamp.value = "";
-    setIsOpen(false);
-  },[draffleClient, setIsOpen])
+  // Execture function, submit form, clear data
+  const handleRaffle = useCallback(
+    async (e: any) => {
+      e.preventDefault();
+
+      // Use handler to give nice toast message
+      await txHandler(
+        () =>
+          createRaffle(
+            draffleClient,
+            draffleClient.provider.wallet.publicKey,
+            new PublicKey(e.target.tokenMint.value),
+            e.target.endTimestamp.value,
+            e.target.ticketCost.value,
+            e.target.maxEntrants.value
+          ),
+        `Raffle created successfully!`
+      );
+
+      e.target.tokenMint.value = '';
+      e.target.ticketCost.value = '';
+      e.target.maxEntrants.value = '';
+      e.target.endTimestamp.value = '';
+      setIsOpen(false);
+    },
+    [draffleClient, setIsOpen]
+  );
 
   return (
     <Dialog
@@ -115,7 +129,7 @@ const CreateRaffleModal: FC<CreateRaffleModalProps> = ({ isOpen, setIsOpen }) =>
               variant="standard"
             />
             <Spacer height={device === DeviceType.Phone ? '5px' : '10px'} />
-          <Button type="submit">Create Raffle</Button>
+            <Button type="submit">Create Raffle</Button>
           </form>
         </DialogContent>
       </div>

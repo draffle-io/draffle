@@ -23,25 +23,31 @@ export const addPrize = async (
   prizeIndex: number,
   amount: number
 ) => {
-
+  // Helper for PrizeIndex format for PDA
   const formatPrizeIndex = (num: number) => {
     const arr = new ArrayBuffer(4);
     const view = new DataView(arr);
     view.setUint8(0, num);
     return new Uint8Array(arr);
-  }
+  };
 
-  const PRIZE_PREFIX = "prize";
+  // Find Prize PDA for backend init
+  const PRIZE_PREFIX = 'prize';
   async function getPrizeId(): Promise<PublicKey> {
     let [address] = await PublicKey.findProgramAddress(
-      [raffle.publicKey.toBytes(), Buffer.from(PRIZE_PREFIX), formatPrizeIndex(prizeIndex)],
+      [
+        raffle.publicKey.toBytes(),
+        Buffer.from(PRIZE_PREFIX),
+        formatPrizeIndex(prizeIndex),
+      ],
       new PublicKey(DRAFFLE_PROGRAM_ID)
     );
     return address;
   }
 
-  let prizeId = await getPrizeId()
+  let prizeId = await getPrizeId();
 
+  // ATA of prize mint
   let creatorPrizeAddress = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
@@ -49,6 +55,7 @@ export const addPrize = async (
     creator
   );
 
+  // Begin transaction instructions
   let instructions: TransactionInstruction[] = [];
 
   instructions.push(
@@ -68,5 +75,5 @@ export const addPrize = async (
 
   return draffleClient.provider.sendAndConfirm(
     new Transaction().add(...instructions)
-  )
+  );
 };
