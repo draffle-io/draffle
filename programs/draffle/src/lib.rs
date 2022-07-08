@@ -133,6 +133,14 @@ pub mod draffle {
         Ok(())
     }
 
+    pub fn end_raffle_early(ctx: Context<EndRaffleEarly>) -> Result<()> {
+        let clock = Clock::get()?;
+        let raffle = &mut ctx.accounts.raffle;
+
+        raffle.end_timestamp = clock.unix_timestamp;
+        Ok(())
+    }
+
     pub fn reveal_winners(ctx: Context<RevealWinners>) -> Result<()> {
         let clock = Clock::get()?;
         let raffle = &mut ctx.accounts.raffle;
@@ -380,6 +388,15 @@ pub struct BuyTickets<'info> {
     pub buyer_token_account: Account<'info, TokenAccount>,
     pub buyer_transfer_authority: Signer<'info>,
     pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct EndRaffleEarly<'info> {
+    #[account(mut)]
+    pub raffle: Account<'info, Raffle>,
+    /// CHECK: sysvar address check is hardcoded, we want to avoid the default deserialization
+    #[account(address = sysvar::recent_blockhashes::ID)]
+    pub recent_blockhashes: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]

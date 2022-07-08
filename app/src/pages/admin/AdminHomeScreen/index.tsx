@@ -30,6 +30,8 @@ import { shortenPubkeyString } from '../../../lib/utils';
 import { VAULT_TOKEN_IN, VAULT_TOKEN_OUT } from '../../../config/accounts';
 import AddPrizeModal from '../../../components/AddPrizeModal/AddPrizeModal';
 import CreateRaffleModal from '../../../components/CreateRaffleModal/CreateRaffleModal';
+import { MuiPickersUtilsProvider } from '@material-ui/pickers';
+import MomentUtils from '@date-io/moment';
 
 const AdminHomeScreen: FC = () => {
   const classes = useStyles();
@@ -152,6 +154,7 @@ const AdminHomeScreen: FC = () => {
           <Grid container spacing={1} className={classes.raffleGrid}>
             {[...raffles.values()]
               .filter((raffle) => new Date() <= raffle.endTimestamp)
+              .sort((a,b): any => (b.endTimestamp.getTime()/1000.0) - (a.endTimestamp.getTime()/1000.0))
               .map((raffle) => (
                 <Grid
                   item
@@ -218,6 +221,7 @@ const AdminHomeScreen: FC = () => {
           <Grid container spacing={1} className={classes.raffleGrid}>
             {[...raffles.values()]
               .filter((raffle) => new Date() > raffle.endTimestamp)
+              .sort((a,b): any => (b.endTimestamp.getTime()/1000.0) - (a.endTimestamp.getTime()/1000.0))
               .map((raffle) => (
                 <Grid
                   key={raffle.publicKey.toString()}
@@ -272,7 +276,9 @@ const AdminHomeScreen: FC = () => {
 
 const AdminHomeScreenWithLayout = () => (
   <Screen>
-    <AdminHomeScreen />
+    <MuiPickersUtilsProvider utils={MomentUtils}>
+      <AdminHomeScreen />
+    </MuiPickersUtilsProvider>
   </Screen>
 );
 

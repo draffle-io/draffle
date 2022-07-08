@@ -56,6 +56,10 @@ pub enum Command {
         prize_amount: u64,
         prize_index: u32,
     },
+    /// End raffle early.
+    EndRaffleEarly {
+        raffle: Pubkey,
+    },
     /// Reveal winners of a raffle.
     RevealWinners {
         raffle: Pubkey,
@@ -129,6 +133,9 @@ pub fn entry(opts: Opts) -> Result<()> {
             prize_amount,
             prize_index,
         ),
+        Command::EndRaffleEarly { raffle } => {
+            end_raffle_early(program_id, &program_client, raffle, &payer2)
+        }
         Command::RevealWinners { raffle } => {
             reveal_winners(program_id, &program_client, raffle, &payer2)
         }
@@ -275,6 +282,39 @@ fn add_prize(
             amount: prize_amount,
         })
         .send()?;
+
+    Ok(())
+}
+
+fn end_raffle_early(
+    program_id: Pubkey,
+    program_client: &anchor_client::Program,
+    raffle: Pubkey,
+    payer: &Keypair,
+) -> Result<()> {
+    let rpc_client = program_client.rpc();
+    let latest_hash = rpc_client.get_latest_blockhash().unwrap();
+    rpc_client.send_and_confirm_transaction_with_spinner_and_config(
+        &Transaction::new_signed_with_payer(
+            &[Instruction {
+                program_id,
+                accounts: draffle::accounts::EndRaffleEarly {
+                    raffle,
+                    recent_blockhashes: sysvar::recent_blockhashes::ID,
+                }
+                .to_account_metas(None),
+                data: draffle::instruction::EndRaffleEarly.data(),
+            }],
+            Some(&program_client.payer()),
+            &[payer],
+            latest_hash,
+        ),
+        CommitmentConfig::confirmed(),
+        RpcSendTransactionConfig {
+            skip_preflight: true,
+            ..RpcSendTransactionConfig::default()
+        },
+    )?;
 
     Ok(())
 }
