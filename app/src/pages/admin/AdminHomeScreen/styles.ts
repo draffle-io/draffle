@@ -18,7 +18,7 @@ export const useStyles = makeStyles<Theme>((theme: Theme) => ({
   },
   raffleGridItem: {
     width: '100%',
-    height: '100%',
+    height: 'auto',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -27,7 +27,7 @@ export const useStyles = makeStyles<Theme>((theme: Theme) => ({
   },
   raffleCard: {
     width: '180px',
-    height: '150px',
+    height: '180px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',

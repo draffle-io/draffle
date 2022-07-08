@@ -158,6 +158,22 @@ export type Draffle = {
       ]
     },
     {
+      "name": "endRaffleEarly",
+      "accounts": [
+        {
+          "name": "raffle",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "recentBlockhashes",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "revealWinners",
       "accounts": [
         {
@@ -330,8 +346,8 @@ export type Draffle = {
   "errors": [
     {
       "code": 6000,
-      "name": "MaxEntrantsTooLarge",
-      "msg": "Max entrants is too large"
+      "name": "EntrantsAccountTooSmallForMaxEntrants",
+      "msg": "Entrants account too small for max entrants"
     },
     {
       "code": 6001,
@@ -571,6 +587,22 @@ export const IDL: Draffle = {
       ]
     },
     {
+      "name": "endRaffleEarly",
+      "accounts": [
+        {
+          "name": "raffle",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "recentBlockhashes",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "revealWinners",
       "accounts": [
         {
@@ -743,8 +775,8 @@ export const IDL: Draffle = {
   "errors": [
     {
       "code": 6000,
-      "name": "MaxEntrantsTooLarge",
-      "msg": "Max entrants is too large"
+      "name": "EntrantsAccountTooSmallForMaxEntrants",
+      "msg": "Entrants account too small for max entrants"
     },
     {
       "code": 6001,
