@@ -287,7 +287,10 @@ async fn test_raffle() {
 
     let first_prize_winner_ticket =
         draffle::randomness_tools::expand(raffle_state.randomness.unwrap(), 0) % entrants.total;
-    let first_prize_winner = Entrants::get_entrant(RefCell::new(&mut entrants_data.clone()[..]).borrow(), first_prize_winner_ticket as usize);
+    let first_prize_winner = Entrants::get_entrant(
+        RefCell::new(&mut entrants_data.clone()[..]).borrow(),
+        first_prize_winner_ticket as usize,
+    );
     let winner_prize_ata = spl_associated_token_account::get_associated_token_address(
         &first_prize_winner,
         &first_prize_mint_keypair.pubkey(),
@@ -349,7 +352,10 @@ async fn test_raffle() {
     // Claim second prize
     let second_prize_winner_ticket =
         draffle::randomness_tools::expand(raffle_state.randomness.unwrap(), 1) % entrants.total;
-    let second_prize_winner = Entrants::get_entrant(RefCell::new(&mut entrants_data.clone()[..]).borrow(), second_prize_winner_ticket as usize);
+    let second_prize_winner = Entrants::get_entrant(
+        RefCell::new(&mut entrants_data.clone()[..]).borrow(),
+        second_prize_winner_ticket as usize,
+    );
     let second_prize_winner_ata = spl_associated_token_account::get_associated_token_address(
         &second_prize_winner,
         &second_prize_mint_keypair.pubkey(),
