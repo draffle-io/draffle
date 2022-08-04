@@ -375,7 +375,7 @@ fn claim_for_winners(program_client: &anchor_client::Program, raffle: Pubkey) ->
     let entrants: draffle::Entrants = program_client.account(raffle_state.entrants)?;
     for prize_index in 0..raffle_state.total_prizes {
         let ticket_index =
-            draffle::randomness_tools::expand(randomness, prize_index) & entrants.total;
+            draffle::randomness_tools::expand(randomness, prize_index) % entrants.total;
         println!("prize {}, winning ticket {}", prize_index, ticket_index);
 
         let winner = Entrants::get_entrant(
