@@ -70,6 +70,10 @@ pub enum Command {
         raffle: Pubkey,
         creator_proceeds: Pubkey,
     },
+    // Claim for winners
+    ClaimForWinners {
+        raffle: Pubkey,
+    },
     // Close entrants
     CloseEntrants {
         raffle: Pubkey,
@@ -147,6 +151,7 @@ pub fn entry(opts: Opts) -> Result<()> {
             creator_proceeds,
             &payer2,
         ),
+        Command::ClaimForWinners { raffle } => claim_for_winners(&program_client, raffle),
         Command::CloseEntrants { raffle } => close_entrants(&program_client, raffle),
     }
 }
