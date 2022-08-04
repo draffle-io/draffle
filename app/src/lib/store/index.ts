@@ -26,18 +26,19 @@ export const fetchProceedsAccount = async (
 
   const account = await connection.getAccountInfo(address);
   if (!account) throw Error('Failed to fetch proceeds account');
-  const data = parseTokenAccount(account.data);
-  const tokenInfo = tokenInfoMap.get(data.mint.toString());
-  if (!tokenInfo)
-    throw Error(
-      `Info not found for proceeds account mint ${data.mint.toString()}`
-    );
+  // const data = parseTokenAccount(account.data);
+  // const tokenInfo = tokenInfoMap.get(data.mint.toString());
+  // if (!tokenInfo)
+  //   throw Error(
+  //     `Info not found for proceeds account mint ${data.mint.toString()}`
+  //   );
   const mintInfo = {
-    name: tokenInfo.name,
-    publicKey: data.mint,
-    logoUrl: tokenInfo.logoURI,
-    symbol: tokenInfo.symbol,
-    decimals: tokenInfo.decimals,
+    name: 'BAPE',
+    publicKey: new PublicKey('BgeRyFWWGHeVouqfHfcXUxmvfkgekhrXYVqQWf63kpJB'),
+    logoUrl:
+      'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/BgeRyFWWGHeVouqfHfcXUxmvfkgekhrXYVqQWf63kpJB/logo.png',
+    symbol: 'BAPE',
+    decimals: 9,
   };
   return { address, mintInfo };
 };
