@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar;
 use anchor_spl::token::Token;
 use anchor_spl::token::{self, Mint, TokenAccount};
-use std::cell::{RefMut, Ref};
+use std::cell::{Ref, RefMut};
 use std::convert::TryFrom;
 
 pub const ENTRANTS_SIZE: u32 = 5000;
@@ -40,6 +40,7 @@ pub mod draffle {
     ) -> Result<()> {
         let raffle = &mut ctx.accounts.raffle;
 
+        raffle.bump = *ctx.bumps.get("raffle").unwrap();
         raffle.creator = *ctx.accounts.creator.key;
         raffle.total_prizes = 0;
         raffle.claimed_prizes = 0;
@@ -53,9 +54,11 @@ pub mod draffle {
         entrants.max = max_entrants;
 
         // Verify that we have enough space for max entrants
-        if entrants.to_account_info().data_len() < 8 + 4 + 4 + 32 * max_entrants as usize {
-            return Err(RaffleError::EntrantsAccountTooSmallForMaxEntrants.into());
-        }
+        require!(
+            entrants.to_account_info().data_len()
+                >= Entrants::BASE_SIZE + 32 * max_entrants as usize,
+            RaffleError::EntrantsAccountTooSmallForMaxEntrants
+        );
 
         Ok(())
     }
@@ -64,17 +67,16 @@ pub mod draffle {
         let clock = Clock::get()?;
         let raffle = &mut ctx.accounts.raffle;
 
-        if clock.unix_timestamp > raffle.end_timestamp {
-            return Err(RaffleError::RaffleEnded.into());
-        }
-
-        if prize_index != raffle.total_prizes {
-            return Err(RaffleError::InvalidPrizeIndex.into());
-        }
-
-        if amount == 0 {
-            return Err(RaffleError::NoPrize.into());
-        }
+        require!(
+            clock.unix_timestamp < raffle.end_timestamp,
+            RaffleError::RaffleEnded
+        );
+        require_eq!(
+            prize_index,
+            raffle.total_prizes,
+            RaffleError::InvalidPrizeIndex
+        );
+        require_neq!(amount, 0, RaffleError::NoPrize);
 
         token::transfer(
             CpiContext::new(
@@ -101,9 +103,10 @@ pub mod draffle {
         let raffle = &mut ctx.accounts.raffle;
         let entrants = &mut ctx.accounts.entrants;
 
-        if clock.unix_timestamp > raffle.end_timestamp {
-            return Err(RaffleError::RaffleEnded.into());
-        }
+        require!(
+            clock.unix_timestamp < raffle.end_timestamp,
+            RaffleError::RaffleEnded
+        );
 
         let entrants_account_info = entrants.to_account_info();
         for _ in 0..amount {
@@ -128,7 +131,7 @@ pub mod draffle {
                 .ok_or(RaffleError::InvalidCalculation)?,
         )?;
 
-        msg!("Total entrants: {}", { entrants.total });
+        msg!("Total entrants: {}", entrants.total);
 
         Ok(())
     }
@@ -141,9 +144,10 @@ pub mod draffle {
             .end_timestamp
             .checked_add(TIME_BUFFER)
             .ok_or(RaffleError::InvalidCalculation)?;
-        if clock.unix_timestamp < end_timestamp_with_buffer {
-            return Err(RaffleError::RaffleStillRunning.into());
-        }
+        require!(
+            clock.unix_timestamp > end_timestamp_with_buffer,
+            RaffleError::RaffleStillRunning
+        );
 
         let randomness =
             recent_blockhashes::last_blockhash_accessor(&ctx.accounts.recent_blockhashes)?;
@@ -173,11 +177,13 @@ pub mod draffle {
 
         // When total number of entrants is zero we bypass the winner check and verify the "winner_token_account" belongs to the raffle creator,
         if entrants.total == 0 {
-            if ctx.accounts.winner_token_account.owner != raffle.creator {
-                return Err(RaffleError::OnlyCreatorCanClaimNoEntrantRafflePrizes.into());
-            }
+            require_keys_eq!(
+                ctx.accounts.winner_token_account.owner,
+                raffle.creator,
+                RaffleError::OnlyCreatorCanClaimNoEntrantRafflePrizes
+            );
             msg!(
-                "Raffle creator claiming prize {} of empty raffle",
+                "Raffle creator claiming prize {} of no entrant raffle",
                 prize_index
             );
         } else {
@@ -192,28 +198,19 @@ pub mod draffle {
             );
             msg!("{} {}", winner_rand, winner_index);
 
-            if ticket_index != winner_index {
-                return Err(RaffleError::TicketHasNotWon.into());
-            }
-
-            if ctx.accounts.winner_token_account.owner.key()
-                != Entrants::get_entrant(
-                    ctx.accounts.entrants.to_account_info().data.borrow(),
-                    ticket_index as usize,
-                )
-            {
-                return Err(RaffleError::TokenAccountNotOwnedByWinner.into());
-            }
+            require_eq!(ticket_index, winner_index, RaffleError::TicketHasNotWon);
+            let entrant_for_ticket = Entrants::get_entrant(
+                ctx.accounts.entrants.to_account_info().data.borrow(),
+                ticket_index as usize,
+            );
+            require_keys_eq!(
+                ctx.accounts.winner_token_account.owner,
+                entrant_for_ticket,
+                RaffleError::TokenAccountNotOwnedByWinner
+            );
         }
 
-        if ctx.accounts.prize.amount == 0 {
-            return Err(RaffleError::NoPrize.into());
-        }
-
-        let (_, nonce) = Pubkey::find_program_address(
-            &[b"raffle".as_ref(), raffle.entrants.as_ref()],
-            ctx.program_id,
-        );
+        require_neq!(ctx.accounts.prize.amount, 0, RaffleError::NoPrize);
 
         token::transfer(
             CpiContext::new_with_signer(
@@ -223,7 +220,7 @@ pub mod draffle {
                     to: ctx.accounts.winner_token_account.to_account_info(),
                     authority: raffle_account_info,
                 },
-                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]]],
+                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[raffle.bump]]],
             ),
             ctx.accounts.prize.amount,
         )?;
@@ -241,14 +238,7 @@ pub mod draffle {
     ) -> Result<()> {
         let raffle = &ctx.accounts.raffle;
 
-        if !raffle.randomness.is_some() {
-            return Err(RaffleError::WinnerNotDrawn.into());
-        }
-
-        let (_, nonce) = Pubkey::find_program_address(
-            &[b"raffle".as_ref(), raffle.entrants.as_ref()],
-            ctx.program_id,
-        );
+        require!(raffle.randomness.is_some(), RaffleError::WinnerNotDrawn);
 
         let proceeds_amount = ctx.accounts.proceeds.amount;
         let protocol_fee_amount = u64::try_from(
@@ -263,6 +253,8 @@ pub mod draffle {
             .checked_sub(protocol_fee_amount)
             .ok_or(RaffleError::InvalidCalculation)?;
 
+        let bump = raffle.bump;
+
         token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -271,7 +263,7 @@ pub mod draffle {
                     to: ctx.accounts.creator_proceeds.to_account_info(),
                     authority: ctx.accounts.raffle.to_account_info(),
                 },
-                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]]],
+                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[bump]]],
             ),
             creator_proceeds,
         )?;
@@ -280,9 +272,12 @@ pub mod draffle {
             let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
             let treasury_token_account: Account<TokenAccount> =
                 Account::try_from(&remaining_accounts_iter.next().unwrap())?;
-            if treasury_token_account.owner != treasury::ID {
-                return Err(RaffleError::InvalidTreasuryTokenAccountOwner.into());
-            }
+            require_keys_eq!(
+                treasury_token_account.owner,
+                treasury::ID,
+                RaffleError::InvalidTreasuryTokenAccountOwner
+            );
+
             token::transfer(
                 CpiContext::new_with_signer(
                     ctx.accounts.token_program.to_account_info(),
@@ -291,7 +286,7 @@ pub mod draffle {
                         to: treasury_token_account.to_account_info(),
                         authority: ctx.accounts.raffle.to_account_info(),
                     },
-                    &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[nonce]]],
+                    &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[bump]]],
                 ),
                 protocol_fee_amount,
             )?;
@@ -302,10 +297,10 @@ pub mod draffle {
 
     pub fn close_entrants(ctx: Context<CloseEntrants>) -> Result<()> {
         let raffle = &ctx.accounts.raffle;
-        let entrants = &ctx.accounts.entrants;
-        if (raffle.claimed_prizes != raffle.total_prizes) && entrants.total != 0 {
-            return Err(RaffleError::UnclaimedPrizes.into());
-        }
+        require!(
+            raffle.claimed_prizes == raffle.total_prizes,
+            RaffleError::UnclaimedPrizes
+        );
 
         Ok(())
     }
@@ -439,6 +434,7 @@ pub struct CloseEntrants<'info> {
 #[account]
 #[derive(Debug)]
 pub struct Raffle {
+    pub bump: u8,
     pub creator: Pubkey,
     pub total_prizes: u32,
     pub claimed_prizes: u32,
@@ -457,18 +453,24 @@ pub struct Entrants {
 }
 
 impl Entrants {
+    /// The size of entrants excluding the entrants array
+    const BASE_SIZE: usize = 8 + 4 + 4;
+
     pub fn get_entrant(entrants_data: Ref<&mut [u8]>, index: usize) -> Pubkey {
-        let start_index = 8 + 4 + 4 + 32 * index;
+        let start_index = Entrants::BASE_SIZE + 32 * index;
         Pubkey::new(&entrants_data[start_index..start_index + 32])
     }
 
-    fn append_entrant(&mut self, mut entrants_data: RefMut<&mut [u8]>, entrant: Pubkey) -> Result<()> {
+    fn append_entrant(
+        &mut self,
+        mut entrants_data: RefMut<&mut [u8]>,
+        entrant: Pubkey,
+    ) -> Result<()> {
         if self.total >= self.max {
             return Err(RaffleError::NotEnoughTicketsLeft.into());
         }
-        let current_index = 8 + 4 + 4 + 32 * self.total as usize;
-        let entrant_slice: &mut [u8] =
-            &mut entrants_data[current_index..current_index + 32];
+        let current_index = Entrants::BASE_SIZE + 32 * self.total as usize;
+        let entrant_slice: &mut [u8] = &mut entrants_data[current_index..current_index + 32];
         entrant_slice.copy_from_slice(&entrant.to_bytes());
         self.total += 1;
 
