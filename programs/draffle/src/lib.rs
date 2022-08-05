@@ -220,11 +220,7 @@ pub mod draffle {
                     to: ctx.accounts.winner_token_account.to_account_info(),
                     authority: raffle_account_info,
                 },
-                &[&[
-                    b"raffle".as_ref(),
-                    raffle.entrants.as_ref(),
-                    &[raffle.bump],
-                ]],
+                &[&[b"raffle".as_ref(), raffle.entrants.as_ref(), &[raffle.bump]]],
             ),
             ctx.accounts.prize.amount,
         )?;
