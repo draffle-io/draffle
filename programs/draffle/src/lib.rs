@@ -40,6 +40,7 @@ pub mod draffle {
     ) -> Result<()> {
         let raffle = &mut ctx.accounts.raffle;
 
+        raffle.bump = *ctx.bumps.get("raffle").unwrap();
         raffle.creator = *ctx.accounts.creator.key;
         raffle.total_prizes = 0;
         raffle.claimed_prizes = 0;
@@ -222,7 +223,7 @@ pub mod draffle {
                 &[&[
                     b"raffle".as_ref(),
                     raffle.entrants.as_ref(),
-                    &[*ctx.bumps.get("raffle").unwrap()],
+                    &[raffle.bump],
                 ]],
             ),
             ctx.accounts.prize.amount,
@@ -256,7 +257,7 @@ pub mod draffle {
             .checked_sub(protocol_fee_amount)
             .ok_or(RaffleError::InvalidCalculation)?;
 
-        let bump = *ctx.bumps.get("raffle").unwrap();
+        let bump = raffle.bump;
 
         token::transfer(
             CpiContext::new_with_signer(
@@ -300,7 +301,6 @@ pub mod draffle {
 
     pub fn close_entrants(ctx: Context<CloseEntrants>) -> Result<()> {
         let raffle = &ctx.accounts.raffle;
-        let entrants = &ctx.accounts.entrants;
         require!(
             raffle.claimed_prizes == raffle.total_prizes,
             RaffleError::UnclaimedPrizes
@@ -438,6 +438,7 @@ pub struct CloseEntrants<'info> {
 #[account]
 #[derive(Debug)]
 pub struct Raffle {
+    pub bump: u8,
     pub creator: Pubkey,
     pub total_prizes: u32,
     pub claimed_prizes: u32,
