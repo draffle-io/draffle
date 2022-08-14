@@ -158,6 +158,7 @@ const AdminHomeScreen: FC = () => {
               .sort((a,b): any => (b.endTimestamp.getTime()/1000.0) - (a.endTimestamp.getTime()/1000.0))
               .map((raffle) => (
                 <Grid
+                  key={raffle.publicKey.toString()+"2"}
                   item
                   xs={3}
                   spacing={3}
