@@ -32,10 +32,11 @@ import AddPrizeModal from '../../../components/AddPrizeModal/AddPrizeModal';
 import CreateRaffleModal from '../../../components/CreateRaffleModal/CreateRaffleModal';
 import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 import MomentUtils from '@date-io/moment';
+import { isAdmin } from '../../../components/AdminRoute';
 
 const AdminHomeScreen: FC = () => {
   const classes = useStyles();
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
   const { push } = useHistory();
   const { device } = useViewport();
   const { raffles, fetchAllRaffles } = useRafflesStore();
@@ -57,7 +58,7 @@ const AdminHomeScreen: FC = () => {
 
   return (
     <div className={classes.root}>
-      {connected ? (
+      {connected && isAdmin(publicKey) ? (
         <>
           <div
             style={{
@@ -164,11 +165,6 @@ const AdminHomeScreen: FC = () => {
                 >
                   <Card
                     className={classes.raffleCard}
-                    onClick={() =>
-                      raffle.metadata.name === 'Unnamed Raffle'
-                        ? null
-                        : push(`${routes.ADMIN.RAFFLES}/${raffle.publicKey}`)
-                    }
                   >
                     <Typography>{raffle.metadata.name}</Typography>
                     <Typography>{raffle.endTimestamp.toISOString()}</Typography>
@@ -207,6 +203,7 @@ const AdminHomeScreen: FC = () => {
                       </IconButton>
                     </div>
                     <AddPrizeModal
+                      key={raffle.publicKey.toString()}
                       isOpen={prizeIsOpen}
                       setIsOpen={setPrizeIsOpen}
                       raffle={raffle}

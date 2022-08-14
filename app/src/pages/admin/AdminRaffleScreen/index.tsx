@@ -1,8 +1,10 @@
 import { Button, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@material-ui/core';
 import { Refresh } from '@material-ui/icons';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { SYSVAR_RECENT_BLOCKHASHES_PUBKEY } from '@solana/web3.js';
 import { FC, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
+import { isAdmin } from '../../../components/AdminRoute';
 import Screen from '../../../components/layout/Screen';
 import Spacer from '../../../components/Spacer';
 import { useProgramApis } from '../../../hooks/useProgramApis';
@@ -18,7 +20,7 @@ const AdminRaffleScreen: FC = () => {
   const { id: raffleId } = useParams<{ id: string }>();
   const { raffles, updateRaffleById } = useRafflesStore();
   const { draffleClient } = useProgramApis();
-
+  const { connected, publicKey } = useWallet();
   const [currentRaffle, setCurrentRaffle] = useState<Raffle>();
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -97,7 +99,7 @@ const AdminRaffleScreen: FC = () => {
 
   return (
     <div className={classes.root}>
-      {currentRaffle ? (
+      {currentRaffle && connected && isAdmin(publicKey) ? (
         <>
           <div className={classes.headerContainer}>
             <Typography variant="h3">
