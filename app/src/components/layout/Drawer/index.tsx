@@ -48,6 +48,7 @@ const Drawer: FC<DrawerProps> = ({
             .filter(({ admin }) => !admin || (admin && isAdmin(wallet)))
             .map((navLink) => (
               <NavButton
+                key={navLink.label}
                 label={navLink.label}
                 target={navLink.target}
                 onClick={() => setIsOpen(false)}
