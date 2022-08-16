@@ -1,5 +1,7 @@
 # dRaffle
 
+> :warning: If you intend to use this for production use the [v1 branch](https://github.com/draffle-io/draffle/tree/v1) which is matching the mainnet-beta deployment
+
 dRaffle is a decentralized raffle protocol on Solana, which creates the necessary technical foundation to the dRaffle Luck Club. dRaffle is the first of its kind open-source transparent system to allow raffling of any token, in any amount, any mint, unlimited number of participants or number of prizes.
 
 [dRaffle dApp](https://www.draffle.io/)
@@ -10,11 +12,15 @@ dRaffle is a decentralized raffle protocol on Solana, which creates the necessar
 
 [Discord](https://discord.com/invite/BwPsaDzbNR)
 
-The dRaffle program has been deployed and is a verifiable build https://anchor.projectserum.com/program/dRafA7ymQiLKjR5dmmdZC9RPX4EQUjqYFB3mWokRuDs
+## Program Deployments
+
+| Program | Mainnet Beta | Status | Code |
+| --------| ------------ | ------ | ---- |
+| [dRaffle](/programs/draffle/)     | `dRafA7ymQiLKjR5dmmdZC9RPX4EQUjqYFB3mWokRuDs` | [Anchor Verified](dRafA7ymQiLKjR5dmmdZC9RPX4EQUjqYFB3mWokRuDs) | [v1 branch](https://github.com/draffle-io/draffle/tree/v1)
 
 ## Components
 
-- The dRaffle program, to create raffles
+- The dRaffle program, to manage raffles
 - The dRaffle cli, to be able to interact with all the draffle commands to create raffle and add prizes
 - The community staking program, to allow user to stake and earn rewards on the dRaffle community token, which is a free gift for early adopters and will give access to raffles
 
