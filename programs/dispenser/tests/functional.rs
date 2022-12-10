@@ -11,6 +11,7 @@ use solana_sdk::{
     system_instruction, system_program, sysvar,
     transaction::{Transaction, TransactionError},
 };
+use spl_associated_token_account::instruction::create_associated_token_account;
 use std::str::FromStr;
 
 #[tokio::test]
@@ -464,7 +465,7 @@ pub async fn initialize_ata(
     dispenser_program_test
         .process_tx_and_assert_ok(
             &[
-                spl_associated_token_account::create_associated_token_account(
+                create_associated_token_account(
                     &dispenser_program_test.context.payer.pubkey(),
                     user,
                     mint,

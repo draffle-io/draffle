@@ -17,14 +17,15 @@ production = []
 default = []
 
 [dependencies]
-anchor-lang = "0.24.2"
-anchor-spl = "0.24.2"
+anchor-lang = "0.25"
+anchor-spl = "0.25"
+solana-program = "1.10.31"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
 bincode = "1.3.3"
-solana-sdk = "1.9.13"
-solana-program-test = "1.9.13"
+solana-sdk = "1.10.31"
+solana-program-test = "1.10.31"
 spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
 spl-associated-token-account = { version = "1.0.2", features = ["no-entrypoint"] }
 bytemuck = "1.4.0"
